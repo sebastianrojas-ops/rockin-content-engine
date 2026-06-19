@@ -640,7 +640,7 @@ body{background:var(--black);color:var(--t1);font-family:'DM Sans',sans-serif;fo
         <div class="cal-form-grid" style="margin-bottom:12px">
           <div class="cal-fld">
             <label class="cal-label">Email del responsable de aprobar</label>
-            <input class="cal-input" id="calNotifyEmail" type="email" placeholder="community@rockin.com" />
+            <input class="cal-input" id="calNotifyEmail" type="email" placeholder="sebastian.rojas@rockinmedia.es" />
             <span style="font-size:9px;color:var(--t3)">Recibirá el email con el post para aprobar o rechazar</span>
           </div>
           <div class="cal-fld">
@@ -2064,7 +2064,7 @@ async function saveSchedule(){
   btn.disabled = true
 
   try{
-    const notifyEmail = document.getElementById('calNotifyEmail').value.trim() || 'community@rockin.com'
+    const notifyEmail = document.getElementById('calNotifyEmail').value.trim() || 'sebastian.rojas@rockinmedia.es'
     const notifyEmail2 = document.getElementById('calNotifyEmail2').value.trim()
     const notifyEmails = [notifyEmail, ...(notifyEmail2 ? [notifyEmail2] : [])].join(',')
 
