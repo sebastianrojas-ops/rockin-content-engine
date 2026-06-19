@@ -2025,26 +2025,29 @@ async function saveSchedule(){
   const freqMap = { weekly:'weekly', monthly:'monthly', once:'specific_dates' }
   const freq = freqMap[calRepeatMode] || 'weekly'
 
-  // Gap: how early to generate before publish date
+  // Gap days for recurring runs (not the first one)
   const gapMap = { weekly:7, monthly:14, once:3 }
   const gapDays = gapMap[calRepeatMode] || 7
 
-  // Calculate next PUBLISH date
+  // Calculate first PUBLISH date (next upcoming selected day)
   const now = new Date()
   let publishDate = null
 
   if(calRepeatMode === 'weekly'){
     const next = new Date(now)
     next.setHours(h, m, 0, 0)
-    for(let i=0;i<15;i++){
+    if(next <= now) next.setDate(next.getDate()+1)
+    for(let i=0;i<14;i++){
       const dow = next.getDay()===0?7:next.getDay()
-      if(calSelectedDates.includes(dow) && next > now){ publishDate=new Date(next); break }
+      if(calSelectedDates.includes(dow)){ publishDate=new Date(next); break }
       next.setDate(next.getDate()+1)
     }
   } else if(calRepeatMode === 'monthly'){
-    const next = new Date(now.getFullYear(), now.getMonth(), 1, h, m, 0)
+    const next = new Date(now)
+    next.setHours(h, m, 0, 0)
+    if(next <= now) next.setDate(next.getDate()+1)
     for(let i=0;i<60;i++){
-      if(calSelectedDates.includes(next.getDate()) && next > now){ publishDate=new Date(next); break }
+      if(calSelectedDates.includes(next.getDate())){ publishDate=new Date(next); break }
       next.setDate(next.getDate()+1)
     }
   } else {
@@ -2052,12 +2055,10 @@ async function saveSchedule(){
     if(upcoming.length) publishDate = upcoming[0]
   }
 
-  if(!publishDate){ alert('Las fechas seleccionadas ya pasaron. Selecciona fechas futuras.'); return }
+  if(!publishDate){ alert('No se encontró una fecha de publicación válida. Revisa los días seleccionados.'); return }
 
-  // next_run_at = publish date - gap (when to GENERATE)
-  const nextRun = new Date(publishDate.getTime() - gapDays * 24 * 60 * 60 * 1000)
-  // If generation date already passed, start now
-  const effectiveNextRun = nextRun < now ? new Date(now.getTime() + 60000) : nextRun
+  // FIRST RUN: generate immediately, publish on first selected date
+  const effectiveNextRun = new Date(now.getTime() + 30000) // 30 seconds from now
 
   const btn = document.querySelector('.cal-save-btn')
   btn.textContent = 'Guardando…'
@@ -2082,6 +2083,7 @@ async function saveSchedule(){
       active: true,
       next_run_at: effectiveNextRun.toISOString(),
       gap_days: gapDays,
+      first_publish_date: publishDate.toISOString(),
     })
     if(error) throw error
 
@@ -2118,7 +2120,7 @@ async function loadSchedules(){
         <div class="schedule-meta">${freqLabel[s.frequency]||s.frequency} · ${s.publish_time} · ${s.review_window_hours}h revisión · ${s.review_window_hours>0?s.review_window_hours+'h revisión':'Sin revisión'} · Extensión e intención automáticas</div>
         <div class="schedule-meta" style="color:var(--t2)">📧 ${s.notify_email||'community@rockin.com'}</div>
         <div class="schedule-meta" style="color:var(--cyan)">⚡ Genera: ${s.next_run_at ? new Date(s.next_run_at).toLocaleString('es',{dateStyle:'short',timeStyle:'short'}) : '—'}</div>
-        <div class="schedule-meta" style="color:var(--green)">📤 Publica: ${s.next_run_at && s.gap_days ? new Date(new Date(s.next_run_at).getTime() + (s.gap_days||7)*24*60*60*1000).toLocaleString('es',{dateStyle:'short',timeStyle:'short'}) : '—'}</div>
+        <div class="schedule-meta" style="color:var(--green)">📤 Primera publicación: ${s.first_publish_date ? new Date(s.first_publish_date).toLocaleString('es',{dateStyle:'short',timeStyle:'short'}) : '—'}</div>
       </div>
       <div class="schedule-toggle">
         <span style="font-size:10px;color:${s.active?'var(--green)':'var(--t3)'}">${s.active?'Activo':'Pausado'}</span>
