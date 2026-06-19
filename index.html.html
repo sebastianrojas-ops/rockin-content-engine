@@ -1,0 +1,2295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>rockin. Content Intelligence</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
+:root{
+  --black:#080808;--dark:#0e0e0e;--s1:#161616;--s2:#1e1e1e;--s3:#252525;
+  --b1:#2a2a2a;--b2:#333;--cyan:#23D0D9;--cdim:rgba(35,208,217,0.12);
+  --green:#6FDE9C;--amber:#F5C842;--red:#FF5252;--purple:#9B7FFF;
+  --t1:#F0EEE8;--t2:#888;--t3:#4a4a4a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--black);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.6;display:flex;flex-direction:column}
+
+/* LOGIN SCREEN */
+.login-screen{position:fixed;inset:0;background:var(--black);z-index:99999;display:flex;align-items:center;justify-content:center}
+.login-box{background:var(--s1);border:1px solid var(--b2);border-radius:12px;padding:36px 32px;width:360px;box-shadow:0 24px 64px rgba(0,0,0,.8)}
+.login-logo{display:flex;align-items:center;justify-content:center;margin-bottom:28px;gap:0}
+.login-logo-text{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;letter-spacing:-1px}
+.login-logo-dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#23D0D9,#6FDE9C);margin-left:2px;margin-bottom:-3px}
+.login-subtitle{text-align:center;font-size:11px;color:var(--t3);margin-bottom:24px;font-family:'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase}
+.login-field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.login-label{font-size:10px;color:var(--t2)}
+.login-input{background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:9px 11px;color:var(--t1);font-family:'DM Sans',sans-serif;font-size:13px;width:100%;transition:border-color .15s}
+.login-input:focus{outline:none;border-color:var(--cyan)}
+.login-input::placeholder{color:var(--t3)}
+.login-btn{width:100%;background:var(--cyan);border:none;border-radius:6px;padding:10px;color:#000;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-top:8px;transition:opacity .15s}
+.login-btn:hover{opacity:.88}
+.login-btn:disabled{opacity:.4;cursor:not-allowed}
+.login-error{font-size:11px;color:var(--red);text-align:center;margin-top:8px;min-height:16px}
+.login-user{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t2)}
+.logout-btn{background:transparent;border:1px solid var(--b1);border-radius:4px;padding:2px 7px;color:var(--t3);cursor:pointer;font-size:10px;transition:all .15s;margin-left:4px}
+.logout-btn:hover{border-color:var(--red);color:var(--red)}
+
+/* HEADER */
+.hdr{height:50px;background:var(--dark);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;z-index:10}
+.logo{display:flex;align-items:center}
+.logo-text{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-1px;color:var(--t1)}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,#23D0D9,#6FDE9C);margin-left:1px;margin-bottom:-2px;flex-shrink:0}
+.hsep{width:1px;height:20px;background:var(--b1);flex-shrink:0}
+.psel{position:relative}
+.pbtn{display:flex;align-items:center;gap:7px;background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:5px 10px;cursor:pointer;color:var(--t1);font-family:'DM Sans',sans-serif;font-size:12px;transition:border-color .15s;white-space:nowrap}
+.pbtn:hover{border-color:var(--cyan)}
+.pav{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:9px;font-weight:800;flex-shrink:0}
+.pcaret{color:var(--t3);font-size:9px;margin-left:2px}
+.pdrop{position:absolute;top:calc(100% + 6px);left:0;background:var(--s1);border:1px solid var(--b2);border-radius:8px;min-width:230px;box-shadow:0 12px 32px rgba(0,0,0,.7);z-index:9000;overflow:hidden;display:none}
+.pdrop.open{display:block}
+.dl{padding:4px 11px;font-size:9px;color:var(--t3);font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;margin-top:6px}
+.di{display:flex;align-items:center;gap:8px;padding:7px 11px;cursor:pointer;transition:background .1s}
+.di:hover{background:var(--s2)}
+.di.act{background:var(--cdim)}
+.di-name{font-size:12px;font-weight:500}
+.di-role{font-size:10px;color:var(--t3)}
+.ddiv{height:1px;background:var(--b1);margin:4px 0}
+.dadd{display:flex;align-items:center;gap:7px;padding:8px 11px;cursor:pointer;color:var(--cyan);font-size:12px;font-weight:500;transition:background .1s;margin-bottom:4px}
+.dadd:hover{background:var(--cdim)}
+.hright{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.apibar{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:4px 9px}
+.apibar-label{font-size:9px;color:var(--t3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.07em;white-space:nowrap}
+.apibar input{background:transparent;border:none;outline:none;color:var(--cyan);font-family:'DM Mono',monospace;font-size:10px;width:130px}
+.apibar input::placeholder{color:var(--t3)}
+.api-ok{font-size:10px;font-weight:500}
+.netbadge{display:flex;align-items:center;gap:5px;background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:5px 9px;font-size:11px;color:var(--t2);white-space:nowrap}
+.ndot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+
+/* MAIN */
+.main{flex:1;display:flex;overflow:hidden;min-height:0}
+
+/* ── LEFT PANEL: TEMÁTICAS ── */
+.lp{width:230px;flex-shrink:0;background:var(--dark);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+.lphdr{padding:10px 11px 7px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.lptitle{font-size:9px;color:var(--t3);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase}
+.addtheme-btn{background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:3px 7px;cursor:pointer;color:var(--cyan);font-size:10px;font-family:'DM Sans',sans-serif;transition:border-color .15s;white-space:nowrap}
+.addtheme-btn:hover{border-color:var(--cyan)}
+
+.themelist{flex:1;overflow-y:auto;padding:0 5px 8px}
+.themelist::-webkit-scrollbar{width:2px}
+.themelist::-webkit-scrollbar-thumb{background:var(--b1)}
+
+/* Thematic group */
+.themegroup{margin-bottom:10px;border-radius:6px;overflow:hidden;border:1px solid var(--b1)}
+.themegroup-hdr{display:flex;align-items:center;gap:7px;padding:7px 9px;background:var(--s2);cursor:pointer;transition:background .1s;user-select:none}
+.themegroup-hdr:hover{background:var(--s3)}
+.themegroup-hdr.sel{background:var(--cdim);border-bottom:1px solid rgba(35,208,217,.2)}
+.themegroup-check{width:13px;height:13px;border:1px solid var(--b2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8px;color:transparent;transition:all .15s}
+.themegroup-hdr.sel .themegroup-check{background:var(--cyan);border-color:var(--cyan);color:#000}
+.themegroup-name{font-size:11px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.themegroup-chevron{font-size:9px;color:var(--t3);transition:transform .2s;flex-shrink:0}
+.themegroup-hdr.expanded .themegroup-chevron{transform:rotate(180deg)}
+.theme-del{font-size:10px;color:var(--t3);cursor:pointer;padding:1px 4px;border-radius:3px;flex-shrink:0;transition:all .15s;line-height:1;opacity:0}
+.themegroup-hdr:hover .theme-del{opacity:1}
+.theme-del:hover{color:var(--red);background:rgba(255,82,82,.1)}
+
+.topiclist{padding:4px 0;display:none}
+.themegroup.open .topiclist{display:block}
+.topicitem{display:flex;align-items:center;gap:6px;padding:4px 9px 4px 28px;cursor:pointer;transition:background .1s}
+.topicitem:hover{background:var(--s2)}
+.topicitem.sel{background:rgba(35,208,217,.06)}
+.topicck{width:11px;height:11px;border:1px solid var(--b2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:7px;color:transparent;transition:all .15s}
+.topicitem.sel .topicck{background:var(--cyan);border-color:var(--cyan);color:#000}
+.topicname{font-size:10px;color:var(--t2);flex:1;line-height:1.3}
+.topicitem.sel .topicname{color:var(--t1)}
+
+/* Add theme form */
+.addtheme-form{padding:8px;border-top:1px solid var(--b1);display:none;flex-direction:column;gap:5px;flex-shrink:0}
+.addtheme-form.open{display:flex}
+.atf-input{background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:5px 8px;color:var(--t1);font-family:'DM Sans',sans-serif;font-size:11px;width:100%}
+.atf-input:focus{outline:none;border-color:var(--cyan)}
+.atf-input::placeholder{color:var(--t3)}
+.atf-btn{background:var(--cyan);color:#000;border:none;border-radius:4px;padding:6px;font-family:'Syne',sans-serif;font-size:10px;font-weight:700;cursor:pointer;width:100%}
+.atf-loading{font-size:10px;color:var(--cyan);text-align:center;padding:4px;font-family:'DM Mono',monospace;display:none}
+
+/* CENTER */
+.cp{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--b1);min-width:0}
+.ctb{padding:8px 11px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--b1);background:var(--dark);flex-shrink:0;overflow-x:auto}
+.ctb::-webkit-scrollbar{height:0}
+.genbtn{display:flex;align-items:center;gap:5px;background:var(--cyan);color:#000;border:none;border-radius:6px;padding:7px 13px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s;flex-shrink:0;white-space:nowrap}
+.genbtn:hover{opacity:.88}
+.genbtn:disabled{opacity:.45;cursor:not-allowed}
+.genbtn .spin{display:none;animation:spin .7s linear infinite}
+.genbtn.loading .spin{display:inline}
+.genbtn.loading .spark{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.wstog{display:flex;align-items:center;gap:5px;background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:5px 9px;cursor:pointer;font-size:11px;color:var(--t2);transition:all .15s;flex-shrink:0;white-space:nowrap;user-select:none}
+.wstog.on{border-color:var(--cyan);color:var(--cyan);background:var(--cdim)}
+.togtr{width:24px;height:13px;background:var(--b2);border-radius:7px;position:relative;transition:background .2s;flex-shrink:0}
+.togtr::after{content:'';position:absolute;top:2px;left:2px;width:9px;height:9px;border-radius:50%;background:var(--t3);transition:all .2s}
+.wstog.on .togtr{background:var(--cyan)}
+.wstog.on .togtr::after{left:13px;background:#000}
+
+.ilist{flex:1;overflow-y:auto;padding:9px;display:flex;flex-direction:column;gap:6px}
+.ilist::-webkit-scrollbar{width:2px}
+.ilist::-webkit-scrollbar-thumb{background:var(--b1)}
+.icard{background:var(--s1);border:1px solid var(--b1);border-radius:7px;padding:10px 11px 30px;cursor:pointer;transition:all .15s;position:relative}
+.icard:hover{border-color:var(--b2);background:var(--s2)}
+.icard.sel{border-color:var(--cyan);background:var(--cdim)}
+.icardtop{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px}
+.itheme-tag{font-size:8px;font-family:'DM Mono',monospace;font-weight:500;padding:2px 5px;border-radius:2px;border:1px solid rgba(35,208,217,.3);color:var(--cyan);background:rgba(35,208,217,.07);flex-shrink:0}
+.iterr{font-size:9px;color:var(--t3);text-align:right}
+.ititle{font-size:12px;font-weight:500;line-height:1.35;margin-bottom:4px}
+.ihook{font-size:10px;color:var(--t2);line-height:1.5}
+.igenbtn{position:absolute;bottom:7px;right:7px;background:var(--s3);border:1px solid var(--b2);border-radius:4px;padding:2px 8px;color:var(--t2);font-size:10px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;opacity:0}
+.icard:hover .igenbtn,.icard.sel .igenbtn{opacity:1}
+.icard.sel .igenbtn{background:var(--cyan);border-color:var(--cyan);color:#000;font-weight:600}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--t3);gap:8px;text-align:center;padding:40px}
+
+/* RIGHT */
+.rp{width:345px;flex-shrink:0;background:var(--dark);display:flex;flex-direction:column;overflow:hidden}
+.rphdr{padding:9px 13px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.rptitle{font-size:9px;color:var(--t3);font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase}
+.rpfmt{font-size:9px;font-family:'DM Mono',monospace;text-align:right;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.postcnt{flex:1;overflow-y:auto;padding:13px;font-size:13px;line-height:1.75;color:var(--t2);white-space:pre-wrap}
+.postcnt::-webkit-scrollbar{width:2px}
+.postcnt::-webkit-scrollbar-thumb{background:var(--b1)}
+.postcnt.has{color:var(--t1)}
+.postph{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--t3);gap:8px;text-align:center;padding:30px}
+.imgsugg{margin:0 11px 9px;background:var(--s2);border:1px solid var(--b1);border-left:2px solid var(--purple);border-radius:5px;padding:7px 9px;display:none}
+.imgsugg.vis{display:block}
+.isugglbl{font-size:8px;font-family:'DM Mono',monospace;color:var(--purple);letter-spacing:.07em;text-transform:uppercase;margin-bottom:3px}
+.isuggtext{font-size:10px;color:var(--t2);line-height:1.5}
+.rpfoot{padding:9px 11px;border-top:1px solid var(--b1);display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.stats{display:flex;gap:14px}
+.stat-val{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--cyan)}
+.stat-lbl{font-size:8px;color:var(--t3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em}
+.pacts{display:flex;gap:5px}
+.cpybtn{flex:1;background:var(--cyan);color:#000;border:none;border-radius:6px;padding:9px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.cpybtn:hover{opacity:.88}
+.cpybtn:disabled{opacity:.4;cursor:not-allowed}
+.regenbtn{background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:9px 10px;color:var(--t2);font-size:11px;cursor:pointer;transition:all .15s}
+.regenbtn:hover{border-color:var(--cyan);color:var(--cyan)}
+.regenbtn:disabled{opacity:.4;cursor:not-allowed}
+
+.errbanner{display:none;padding:7px 13px;background:rgba(255,82,82,.1);border-bottom:1px solid rgba(255,82,82,.2);font-size:10px;color:var(--red);font-family:'DM Mono',monospace;word-break:break-word;flex-shrink:0}
+.errbanner.vis{display:block}
+
+/* Gen status steps */
+.gen-status{display:none;flex-direction:column;gap:4px;padding:10px 13px;flex-shrink:0;background:var(--dark);border-bottom:1px solid var(--b1)}
+.gen-status.vis{display:flex}
+.gen-step{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--t3);transition:color .3s}
+.gen-step.active{color:var(--cyan)}
+.gen-step.done{color:var(--green)}
+.gen-step-dot{width:5px;height:5px;border-radius:50%;background:var(--t3);flex-shrink:0;transition:background .3s}
+.gen-step.active .gen-step-dot{background:var(--cyan);animation:pulse .8s ease-in-out infinite}
+.gen-step.done .gen-step-dot{background:var(--green)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── MODALS ── */
+.moverlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;display:none;align-items:center;justify-content:center}
+.moverlay.open{display:flex}
+.modal{background:var(--s1);border:1px solid var(--b2);border-radius:11px;width:700px;max-width:96vw;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.8)}
+.mhdr{padding:15px 19px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.mtitle{font-family:'Syne',sans-serif;font-size:14px;font-weight:700}
+.mclose{width:26px;height:26px;background:var(--s2);border:1px solid var(--b1);border-radius:5px;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s;font-family:sans-serif}
+.mclose:hover{border-color:var(--red);color:var(--red)}
+.mbody{flex:1;overflow-y:auto;padding:18px 19px}
+.mbody::-webkit-scrollbar{width:2px}
+.mbody::-webkit-scrollbar-thumb{background:var(--b2)}
+.mfoot{padding:11px 19px;border-top:1px solid var(--b1);display:flex;gap:7px;justify-content:flex-end;flex-shrink:0}
+.bcnl{background:transparent;border:1px solid var(--b1);border-radius:5px;padding:7px 15px;color:var(--t2);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px}
+.bsave{background:var(--cyan);border:none;border-radius:5px;padding:7px 19px;color:#000;cursor:pointer;font-family:'Syne',sans-serif;font-size:11px;font-weight:700}
+
+/* Form elements */
+.fsec{margin-bottom:20px}
+.fsectitle{font-size:9px;font-family:'DM Mono',monospace;color:var(--cyan);letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px;padding-bottom:5px;border-bottom:1px solid var(--b1)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px}
+.frow.s1{grid-template-columns:1fr}
+.fld{display:flex;flex-direction:column;gap:3px}
+.flabel{font-size:10px;color:var(--t2)}
+.fi,.fta,.fsel{background:var(--s2);border:1px solid var(--b1);border-radius:5px;padding:7px 9px;color:var(--t1);font-family:'DM Sans',sans-serif;font-size:11px;transition:border-color .15s;width:100%}
+.fi:focus,.fta:focus,.fsel:focus{outline:none;border-color:var(--cyan)}
+.fi::placeholder,.fta::placeholder{color:var(--t3)}
+.fta{resize:vertical;min-height:62px;line-height:1.5}
+.fsel{appearance:none;cursor:pointer}
+.fsel option{background:var(--s1)}
+.fhint{font-size:9px;color:var(--t3);margin-top:2px}
+.avrow{display:flex;align-items:center;gap:11px;margin-bottom:9px}
+.avprev{width:42px;height:42px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:15px;font-weight:700}
+.cdots{display:flex;gap:5px;flex-wrap:wrap}
+.cdot{width:18px;height:18px;border-radius:50%;cursor:pointer;transition:transform .1s;border:2px solid transparent}
+.cdot:hover{transform:scale(1.15)}
+.cdot.sel{border-color:var(--t1)}
+.msz-grid{display:flex;flex-wrap:wrap;gap:5px}
+.msz-btn{background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:3px 9px;font-size:10px;color:var(--t2);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.msz-btn.sel{background:var(--cdim);border-color:var(--cyan);color:var(--cyan)}
+.ctypes{display:flex;flex-wrap:wrap;gap:4px}
+.ctbtn{background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:3px 8px;font-size:10px;color:var(--t2);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.ctbtn.sel{background:var(--cdim);border-color:var(--cyan);color:var(--cyan)}
+.ctadd{display:flex;gap:5px;margin-top:6px}
+.ctadd input{flex:1;background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:4px 7px;color:var(--t1);font-family:'DM Sans',sans-serif;font-size:10px}
+.ctadd input:focus{outline:none;border-color:var(--cyan)}
+.ctadd input::placeholder{color:var(--t3)}
+.ctadd button{background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:4px 9px;color:var(--cyan);cursor:pointer;font-size:10px}
+.psrcs{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.psrccard{background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:8px 10px}
+.psrccard-top{display:flex;align-items:flex-start;gap:6px}
+.psrccard-fields{flex:1;display:flex;flex-direction:column;gap:4px}
+.psrccard input{background:var(--s3);border:1px solid var(--b1);border-radius:4px;padding:4px 7px;color:var(--t1);font-family:'DM Sans',sans-serif;font-size:10px;width:100%}
+.psrccard input:focus{outline:none;border-color:var(--cyan)}
+.psrccard input::placeholder{color:var(--t3)}
+.psrcrm{width:18px;height:18px;background:transparent;border:1px solid var(--b1);border-radius:3px;color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;transition:all .15s;margin-top:1px}
+.psrcrm:hover{border-color:var(--red);color:var(--red)}
+.psrcadd-btn{display:inline-flex;align-items:center;gap:5px;background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:5px 10px;color:var(--cyan);cursor:pointer;font-size:10px;margin-top:4px;font-family:'DM Sans',sans-serif}
+
+/* ── POST OPTIONS POPUP ── */
+.popup-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:99998;display:none;align-items:center;justify-content:center}
+.popup-overlay.open{display:flex}
+.popup{background:var(--s1);border:1px solid var(--b2);border-radius:10px;width:500px;max-width:94vw;padding:22px;box-shadow:0 16px 48px rgba(0,0,0,.8)}
+.popup-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:4px}
+.popup-sub{font-size:11px;color:var(--t2);margin-bottom:18px}
+.popup-section{margin-bottom:16px}
+.popup-section-label{font-size:9px;font-family:'DM Mono',monospace;color:var(--cyan);letter-spacing:.09em;text-transform:uppercase;margin-bottom:7px}
+.option-grid{display:flex;gap:6px;flex-wrap:wrap}
+.opt-btn{background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:7px 13px;font-family:'DM Sans',sans-serif;font-size:11px;color:var(--t2);cursor:pointer;transition:all .15s;text-align:left;flex:1;min-width:120px}
+.opt-btn:hover{border-color:var(--b2);color:var(--t1)}
+.opt-btn.sel{background:var(--cdim);border-color:var(--cyan);color:var(--cyan)}
+.opt-btn .opt-icon{font-size:14px;display:block;margin-bottom:3px}
+.opt-btn .opt-label{font-weight:500;display:block;font-size:11px}
+.opt-btn .opt-desc{font-size:9px;color:var(--t3);display:block;margin-top:1px}
+.opt-btn.sel .opt-desc{color:var(--cyan);opacity:.7}
+.intent-grid{display:flex;gap:5px;flex-wrap:wrap}
+.intent-btn{background:var(--s2);border:1px solid var(--b1);border-radius:5px;padding:5px 10px;font-size:10px;color:var(--t2);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.intent-btn:hover{border-color:var(--b2);color:var(--t1)}
+.intent-btn.sel{background:var(--cdim);border-color:var(--cyan);color:var(--cyan)}
+.popup-actions{display:flex;gap:7px;margin-top:20px}
+.popup-cancel{flex:1;background:transparent;border:1px solid var(--b1);border-radius:6px;padding:9px;color:var(--t2);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px}
+.popup-confirm{flex:2;background:var(--cyan);border:none;border-radius:6px;padding:9px;color:#000;cursor:pointer;font-family:'Syne',sans-serif;font-size:12px;font-weight:700}
+.popup-confirm:disabled{opacity:.4;cursor:not-allowed}
+
+/* Regen popup */
+.regen-popup{background:var(--s1);border:1px solid var(--b2);border-radius:10px;width:460px;max-width:94vw;padding:20px;box-shadow:0 16px 48px rgba(0,0,0,.8)}
+.regen-popup textarea{background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:9px;color:var(--t1);font-family:'DM Sans',sans-serif;font-size:12px;width:100%;min-height:90px;resize:vertical;margin-top:10px;line-height:1.5}
+.regen-popup textarea:focus{outline:none;border-color:var(--cyan)}
+.regen-popup textarea::placeholder{color:var(--t3)}
+
+.cur{display:inline-block;width:2px;height:12px;background:var(--cyan);margin-left:2px;animation:blink .8s step-end infinite;vertical-align:middle}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* CALENDAR */
+.cal-modal{background:var(--s1);border:1px solid var(--b2);border-radius:11px;width:740px;max-width:96vw;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.8)}
+.cal-tabs{display:flex;border-bottom:1px solid var(--b1);flex-shrink:0}
+.cal-tab{flex:1;padding:11px;font-size:11px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);cursor:pointer;transition:all .15s;text-align:center;border:none;background:transparent}
+.cal-tab.active{color:var(--cyan);border-bottom:2px solid var(--cyan)}
+.cal-body{flex:1;overflow-y:auto;padding:16px 18px}
+.cal-body::-webkit-scrollbar{width:2px}
+.cal-body::-webkit-scrollbar-thumb{background:var(--b1)}
+.cal-section{margin-bottom:20px}
+.cal-section-title{font-size:9px;font-family:'DM Mono',monospace;color:var(--cyan);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--b1)}
+.cal-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.cal-form-grid.s1{grid-template-columns:1fr}
+.cal-fld{display:flex;flex-direction:column;gap:4px}
+.cal-label{font-size:10px;color:var(--t2)}
+.cal-input,.cal-select{background:var(--s2);border:1px solid var(--b1);border-radius:5px;padding:7px 9px;color:var(--t1);font-family:'DM Sans',sans-serif;font-size:11px;width:100%}
+.cal-input:focus,.cal-select:focus{outline:none;border-color:var(--cyan)}
+.cal-select option{background:var(--s1)}
+.weekday-grid{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.wday-btn{background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:4px 8px;font-size:10px;color:var(--t2);cursor:pointer;transition:all .15s;font-family:'DM Mono',monospace}
+.wday-btn.sel{background:var(--cdim);border-color:var(--cyan);color:var(--cyan)}
+.cal-save-btn{background:var(--cyan);border:none;border-radius:6px;padding:9px 20px;color:#000;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;margin-top:12px}
+.schedule-card{background:var(--s2);border:1px solid var(--b1);border-radius:7px;padding:11px 13px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.schedule-card-info{flex:1}
+.schedule-name{font-size:12px;font-weight:500}
+.schedule-meta{font-size:10px;color:var(--t3);font-family:'DM Mono',monospace;margin-top:3px}
+.schedule-toggle{display:flex;align-items:center;gap:8px}
+.sch-del-btn{background:transparent;border:1px solid var(--b1);border-radius:4px;padding:3px 7px;color:var(--t3);cursor:pointer;font-size:10px;transition:all .15s}
+.sch-del-btn:hover{border-color:var(--red);color:var(--red)}
+.queue-card{background:var(--s2);border:1px solid var(--b1);border-radius:7px;padding:11px 13px;margin-bottom:8px}
+.queue-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.queue-card-title{font-size:12px;font-weight:500}
+.queue-card-meta{font-size:10px;color:var(--t3);font-family:'DM Mono',monospace;margin-top:2px}
+.queue-deadline{font-size:10px;color:var(--amber);font-family:'DM Mono',monospace}
+.queue-post-preview{font-size:11px;color:var(--t2);line-height:1.6;max-height:80px;overflow:hidden;margin-bottom:8px;position:relative}
+.queue-post-preview::after{content:'';position:absolute;bottom:0;left:0;right:0;height:20px;background:linear-gradient(transparent,var(--s2))}
+.queue-actions{display:flex;gap:6px}
+.q-approve{background:#0A66C2;border:none;border-radius:5px;padding:6px 12px;color:#fff;font-size:11px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700}
+.q-reject{background:transparent;border:1px solid var(--b1);border-radius:5px;padding:6px 12px;color:var(--t2);font-size:11px;cursor:pointer}
+.q-reject:hover{border-color:var(--red);color:var(--red)}
+.q-status{font-size:10px;font-family:'DM Mono',monospace;padding:3px 7px;border-radius:3px}
+.q-status.pending{color:var(--amber);background:rgba(245,200,66,.1)}
+.q-status.published{color:var(--green);background:rgba(111,222,156,.1)}
+.q-status.rejected{color:var(--red);background:rgba(255,82,82,.1)}
+.empty-queue{padding:30px;text-align:center;color:var(--t3);font-size:12px}
+
+/* LINKEDIN INTEGRATION */
+.li-btn{display:flex;align-items:center;gap:5px;background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;color:var(--t2);transition:all .15s;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.li-btn:hover{border-color:#0A66C2;color:#0A66C2}
+.li-btn.connected{border-color:var(--green);color:var(--green)}
+.li-btn.connected:hover{border-color:var(--red);color:var(--red)}
+.li-publish-btn{flex:1;background:#0A66C2;color:#fff;border:none;border-radius:6px;padding:9px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.li-publish-btn:hover{opacity:.88}
+.li-publish-btn:disabled{opacity:.4;cursor:not-allowed}
+.li-status{font-size:10px;font-family:'DM Mono',monospace;text-align:center;padding:4px;min-height:16px}
+
+/* POST HISTORY POPUP */
+.hist-btn{display:flex;align-items:center;gap:5px;background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;color:var(--t2);transition:all .15s;white-space:nowrap;font-family:'DM Sans',sans-serif}
+.hist-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.hist-popup{background:var(--s1);border:1px solid var(--b2);border-radius:11px;width:720px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.8)}
+.hist-header{padding:14px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hist-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700}
+.hist-profile-btn{background:var(--s2);border:1px solid var(--b1);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--t2);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.hist-profile-btn.active{background:var(--cdim);border-color:var(--cyan);color:var(--cyan)}
+.hist-list{flex:1;overflow-y:auto;padding:12px 18px;display:flex;flex-direction:column;gap:10px}
+.hist-list::-webkit-scrollbar{width:2px}
+.hist-list::-webkit-scrollbar-thumb{background:var(--b1)}
+.hist-card{background:var(--s2);border:1px solid var(--b1);border-radius:8px;overflow:hidden}
+.hist-card-hdr{padding:10px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;cursor:pointer;transition:background .1s}
+.hist-card-hdr:hover{background:var(--s3)}
+.hist-card-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px}
+.hist-tag{font-size:8px;font-family:'DM Mono',monospace;padding:2px 5px;border-radius:3px;border:1px solid rgba(35,208,217,.3);color:var(--cyan);background:rgba(35,208,217,.07)}
+.hist-tag-intent{border-color:rgba(155,127,255,.3);color:var(--purple);background:rgba(155,127,255,.07)}
+.hist-tag-len{border-color:rgba(245,200,66,.3);color:var(--amber);background:rgba(245,200,66,.07)}
+.hist-card-title{font-size:12px;font-weight:500;color:var(--t1)}
+.hist-card-date{font-size:10px;color:var(--t3);white-space:nowrap;font-family:'DM Mono',monospace}
+.hist-card-body{display:none;border-top:1px solid var(--b1)}
+.hist-card.open .hist-card-body{display:block}
+.hist-card-post{padding:12px 14px;font-size:12px;line-height:1.7;color:var(--t1);white-space:pre-wrap;max-height:260px;overflow-y:auto;background:var(--s1)}
+.hist-card-post::-webkit-scrollbar{width:2px}
+.hist-card-post::-webkit-scrollbar-thumb{background:var(--b1)}
+.hist-regen-section{padding:8px 14px 12px;background:var(--s2)}
+.hist-regen-title{font-size:9px;font-family:'DM Mono',monospace;color:var(--purple);letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px}
+.hist-regen-item{background:var(--s1);border:1px solid var(--b1);border-left:2px solid var(--purple);border-radius:5px;padding:7px 10px;margin-bottom:5px}
+.hist-regen-comment{font-size:11px;color:var(--t2);line-height:1.5}
+.hist-regen-date{font-size:9px;color:var(--t3);font-family:'DM Mono',monospace;margin-top:3px}
+.hist-card-actions{display:flex;gap:6px;padding:8px 14px;border-top:1px solid var(--b1)}
+.hist-copy-btn{background:var(--s3);border:1px solid var(--b1);border-radius:5px;padding:5px 10px;color:var(--t2);font-size:11px;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.hist-copy-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.hist-empty{padding:40px;text-align:center;color:var(--t3);font-size:12px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo"><span class="login-logo-text">rockin</span><div class="login-logo-dot"></div></div>
+    <div class="login-subtitle">Content Intelligence · Acceso privado</div>
+    <div class="login-field">
+      <label class="login-label">Email</label>
+      <input class="login-input" id="loginEmail" type="email" placeholder="tu@rockin.com" />
+    </div>
+    <div class="login-field">
+      <label class="login-label">Contraseña</label>
+      <input class="login-input" id="loginPass" type="password" placeholder="••••••••" />
+    </div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Entrar →</button>
+    <div class="login-error" id="loginErr"></div>
+  </div>
+</div>
+
+<header class="hdr">
+  <div class="logo"><span class="logo-text">rockin</span><div class="logo-dot"></div></div>
+  <div class="hsep"></div>
+  <div class="psel" id="psel">
+    <button class="pbtn" id="pbtn">
+      <div class="pav" id="pav" style="background:var(--s2);color:var(--t3)">?</div>
+      <span id="pname" style="font-size:12px;font-weight:500">Sin perfil</span>
+      <span class="pcaret">▾</span>
+    </button>
+    <div class="pdrop" id="pdrop">
+      <div class="dl">Perfiles</div>
+      <div id="plist"></div>
+      <div class="ddiv"></div>
+      <div class="dadd" id="daddBtn"><span style="font-size:15px;line-height:1">+</span><span>Agregar perfil nuevo</span></div>
+    </div>
+  </div>
+  <div class="hright">
+    <div class="apibar">
+      <span class="apibar-label">API Key</span>
+      <input id="akInput" type="password" placeholder="sk-ant-api03-..." oninput="onAK(this.value)" />
+      <span class="api-ok" id="akOk" style="color:var(--t3)">—</span>
+    </div>
+    <button class="hist-btn" onclick="openHistModal()">📋 Posts generados</button>
+    <button class="hist-btn" id="calBtn" onclick="openCalModal()" style="display:none">📅 Calendario</button>
+    <button class="li-btn" id="liConnectBtn" onclick="connectLinkedIn()" style="display:none">🔗 Conectar LinkedIn</button>
+    <div class="netbadge"><div class="ndot"></div><span style="font-weight:500;color:var(--t1)">LinkedIn</span><span style="color:var(--t2)">· Thought Leadership</span></div>
+    <div class="login-user" id="userDisplay" style="display:none">
+      <span id="userNameDisplay"></span>
+      <button class="logout-btn" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+</header>
+
+<div class="errbanner" id="errBanner"></div>
+
+<div class="main">
+  <!-- LEFT: TEMÁTICAS -->
+  <aside class="lp">
+    <div class="lphdr">
+      <span class="lptitle">Temáticas</span>
+      <button class="addtheme-btn" id="addThemeBtn">+ Agregar</button>
+    </div>
+    <div class="themelist" id="themelist">
+      <div style="padding:20px 10px;text-align:center;font-size:10px;color:var(--t3)">Selecciona un perfil<br>para ver las temáticas</div>
+    </div>
+    <div class="addtheme-form" id="addthemeForm">
+      <input class="atf-input" id="atfInput" placeholder="Escribe una temática (ej: Growth Marketing)" />
+      <div class="atf-loading" id="atfLoading">Investigando temática…</div>
+      <button class="atf-btn" onclick="addTheme()">Generar temática →</button>
+    </div>
+  </aside>
+
+  <!-- CENTER -->
+  <main class="cp">
+    <div class="ctb">
+      <button class="genbtn" id="genBtn" onclick="generateIdeas()">
+        <span class="spark">✦</span><span class="spin">↻</span><span id="genLbl">Investigar ahora</span>
+      </button>
+      <div class="wstog" id="wstog" onclick="toggleWS()"><div class="togtr"></div><span id="wsLabel">IA Generativa</span></div>
+    </div>
+    <div class="ilist" id="ilist">
+      <div class="empty"><div style="font-size:22px;opacity:.3">✦</div><div style="font-size:12px">Selecciona temáticas y presiona "Investigar ahora"</div><div style="font-size:10px;color:var(--t3)">Las ideas se generarán según los tópicos activos</div></div>
+    </div>
+  </main>
+
+  <!-- RIGHT -->
+  <aside class="rp">
+    <div class="rphdr"><span class="rptitle">Post generado</span><span class="rpfmt" id="rpfmt" style="color:var(--t3)">—</span></div>
+    <div class="gen-status" id="genStatus">
+      <div class="gen-step" id="gs1"><div class="gen-step-dot"></div><span>Generando borrador inicial…</span></div>
+      <div class="gen-step" id="gs2"><div class="gen-step-dot"></div><span>Comité editorial revisando…</span></div>
+      <div class="gen-step" id="gs3"><div class="gen-step-dot"></div><span>Director creativo validando voz…</span></div>
+      <div class="gen-step" id="gs4"><div class="gen-step-dot"></div><span>Escribiendo versión definitiva…</span></div>
+    </div>
+    <div class="postcnt" id="postcnt"><div class="postph"><div style="font-size:20px;opacity:.2">✦</div><div style="font-size:10px;color:var(--t3)">Selecciona una idea<br>y presiona "Configurar →"</div></div></div>
+    <div class="imgsugg" id="imgsugg"><div class="isugglbl">🖼 Imagen sugerida</div><div class="isuggtext" id="isuggtext"></div></div>
+    <div class="rpfoot">
+      <div class="stats" id="stats" style="display:none">
+        <div><div class="stat-val" id="sw">0</div><div class="stat-lbl">Palabras</div></div>
+        <div><div class="stat-val" id="sc">0</div><div class="stat-lbl">Caracteres</div></div>
+        <div><div class="stat-val" id="sr">0m</div><div class="stat-lbl">Lectura</div></div>
+      </div>
+      <div class="pacts">
+        <button class="cpybtn" id="cpyBtn" onclick="copyPost()" disabled>Copiar post</button>
+        <button class="regenbtn" id="regenBtn" onclick="openRegenPopup()" disabled>↻ Regenerar</button>
+      </div>
+      <button class="li-publish-btn" id="liPublishBtn" onclick="publishToLinkedIn()" disabled style="display:none">Publicar en LinkedIn →</button>
+      <div class="li-status" id="liStatus"></div>
+    </div>
+  </aside>
+</div>
+
+<!-- MODAL: PERFIL -->
+<div class="moverlay" id="modal">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="mhdr">
+      <span class="mtitle" id="modalTitle">✦ Nuevo perfil</span>
+      <button class="mclose" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mbody">
+      <div class="fsec">
+        <div class="fsectitle">01 · Identidad</div>
+        <div class="avrow">
+          <div class="avprev" id="avprev">?</div>
+          <div><div style="font-size:9px;color:var(--t3);margin-bottom:5px">Color del perfil</div><div class="cdots" id="cdots"></div></div>
+        </div>
+        <div class="frow">
+          <div class="fld"><label class="flabel">Nombre completo *</label><input class="fi" id="fName" placeholder="Ej: María González" oninput="updateAv()" /></div>
+          <div class="fld"><label class="flabel">Cargo / Rol *</label><input class="fi" id="fRole" placeholder="Ej: CMO, Co-CEO" /></div>
+        </div>
+        <div class="frow">
+          <div class="fld"><label class="flabel">Empresa</label><input class="fi" id="fCo" placeholder="Ej: rockin." /></div>
+          <div class="fld"><label class="flabel">País / Región</label><input class="fi" id="fCtry" placeholder="Ej: México, España" /></div>
+        </div>
+      </div>
+      <div class="fsec">
+        <div class="fsectitle">02 · Experiencia</div>
+        <div class="frow s1"><div class="fld"><label class="flabel">¿Cuál ha sido tu experiencia laboral más relevante?</label><textarea class="fta" id="fExp" placeholder="Ej: 10 años en growth marketing, ex-Director en Ogilvy..."></textarea></div></div>
+        <div class="frow">
+          <div class="fld"><label class="flabel">Universidad / formación</label><input class="fi" id="fEdu" placeholder="Ej: ITAM, ESADE..." /></div>
+          <div class="fld"><label class="flabel">Tipo de industria en que trabajas</label><input class="fi" id="fInd" placeholder="Ej: SaaS, Retail, Fintech" /></div>
+        </div>
+        <div class="frow s1"><div class="fld"><label class="flabel">Nombres de empresas con las que has trabajado</label><input class="fi" id="fCli" placeholder="Ej: Rappi, Kavak, Clip, Grupo Bimbo..." /></div></div>
+      </div>
+      <div class="fsec">
+        <div class="fsectitle">03 · Voz y perspectiva</div>
+        <div class="frow s1"><div class="fld"><label class="flabel">¿Cuáles son tus temas de interés profesional?</label><textarea class="fta" id="fTop" placeholder="Ej: Revenue ops, cultura org, IA aplicada, growth..."></textarea></div></div>
+        <div class="frow s1"><div class="fld"><label class="flabel">¿Cómo describirías tu tono de comunicación?</label><textarea class="fta" id="fTone" placeholder="Ej: Directo, datos primero, sin motivacional..." style="min-height:50px"></textarea></div></div>
+        <div class="frow s1"><div class="fld"><label class="flabel">¿Qué NO deberías decir jamás en tu contenido?</label><textarea class="fta" id="fNev" placeholder='Ej: No usar "contenido de valor", no frases de coach...' style="min-height:50px"></textarea></div></div>
+      </div>
+      <div class="fsec">
+        <div class="fsectitle">04 · Audiencia</div>
+        <div class="frow s1"><div class="fld"><label class="flabel">¿A quién le hablas en LinkedIn?</label><input class="fi" id="fAud" placeholder="Ej: CMOs y directores de marketing B2B en LATAM" /></div></div>
+        <div class="fld" style="margin-bottom:9px">
+          <label class="flabel">Tamaño de empresa (selecciona todas las que apliquen)</label>
+          <div class="msz-grid" id="mszGrid" style="margin-top:5px">
+            <button class="msz-btn" data-sz="startups" onclick="toggleSz(this)">Startups (1-50)</button>
+            <button class="msz-btn" data-sz="pymes" onclick="toggleSz(this)">PYMEs (50-200)</button>
+            <button class="msz-btn" data-sz="mediana" onclick="toggleSz(this)">Medianas (200-1k)</button>
+            <button class="msz-btn" data-sz="enterprise" onclick="toggleSz(this)">Enterprise (1k+)</button>
+          </div>
+        </div>
+      </div>
+      <div class="fsec">
+        <div class="fsectitle">05 · Consumo e inspiración</div>
+        <div class="frow s1"><div class="fld"><label class="flabel">¿Qué tipos de contenido consumes habitualmente?</label><textarea class="fta" id="fCons" placeholder="Ej: Newsletters, podcasts, libros de estrategia..." style="min-height:50px"></textarea></div></div>
+        <div class="frow s1">
+          <div class="fld">
+            <label class="flabel">Fuentes que consume este perfil (bases de conocimiento)</label>
+            <div class="fhint" style="margin-bottom:6px">La IA usará estas fuentes + toda la info del perfil para generar temáticas relevantes en el dashboard</div>
+            <div class="psrcs" id="psrcs"></div>
+            <button class="psrcadd-btn" onclick="addPSrc()">+ Agregar fuente</button>
+          </div>
+        </div>
+      </div>
+      <div class="fsec">
+        <div class="fsectitle">06 · Intenciones de contenido</div>
+        <div class="fld">
+          <label class="flabel">¿Con qué intención quieres generar posts? (aparecerán en el popup antes de generar)</label>
+          <div class="ctypes" id="ctypes" style="margin-top:5px"></div>
+          <div class="ctadd"><input id="nct" placeholder="Agregar otra intención..." /><button onclick="addCT()">+ Add</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="bcnl" onclick="closeModal()">Cancelar</button>
+      <button class="bsave" id="bsave" onclick="saveProfile()">Guardar perfil →</button>
+    </div>
+  </div>
+</div>
+
+<!-- POPUP: opciones de post -->
+<div class="popup-overlay" id="popupOverlay">
+  <div class="popup" onclick="event.stopPropagation()">
+    <div class="popup-title">Configurar post</div>
+    <div class="popup-sub">Define extensión e intención antes de generar</div>
+    <div class="popup-section">
+      <div class="popup-section-label">Extensión del post</div>
+      <div class="option-grid">
+        <button class="opt-btn" data-group="len" data-val="corto" onclick="selectOpt(this)"><span class="opt-icon">⚡</span><span class="opt-label">Corto</span><span class="opt-desc">150-250 palabras · Alcance</span></button>
+        <button class="opt-btn" data-group="len" data-val="mediano" onclick="selectOpt(this)"><span class="opt-icon">📝</span><span class="opt-label">Mediano</span><span class="opt-desc">300-450 palabras · Balance</span></button>
+        <button class="opt-btn" data-group="len" data-val="largo" onclick="selectOpt(this)"><span class="opt-icon">📖</span><span class="opt-label">Largo</span><span class="opt-desc">500-700 palabras · Autoridad</span></button>
+      </div>
+    </div>
+    <div class="popup-section">
+      <div class="popup-section-label">Intención del post</div>
+      <div class="intent-grid" id="intentGrid"></div>
+    </div>
+    <div class="popup-actions">
+      <button class="popup-cancel" onclick="closePopup()">Cancelar</button>
+      <button class="popup-confirm" id="popupConfirm" onclick="confirmPopup()" disabled>Generar post →</button>
+    </div>
+  </div>
+</div>
+
+<!-- POPUP: regenerar con feedback -->
+<div class="popup-overlay" id="regenOverlay">
+  <div class="regen-popup" onclick="event.stopPropagation()">
+    <div class="popup-title">↻ Regenerar post</div>
+    <div style="font-size:11px;color:var(--t2);margin-top:4px">¿Qué quieres cambiar o mejorar? La IA tomará esto en cuenta para el nuevo post y para futuras generaciones.</div>
+    <textarea id="regenFeedback" placeholder="Ej: El tono es muy formal, quiero más directo. El cierre no me convence. Agrega un ejemplo concreto..."></textarea>
+    <div class="popup-actions" style="margin-top:12px">
+      <button class="popup-cancel" onclick="closeRegenPopup()">Cancelar</button>
+      <button class="popup-confirm" onclick="confirmRegen()">Regenerar →</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CALENDARIO EDITORIAL -->
+<div class="moverlay" id="calModal">
+  <div class="cal-modal" onclick="event.stopPropagation()">
+    <div class="mhdr">
+      <span class="mtitle">📅 Calendario editorial</span>
+      <button class="mclose" onclick="closeCalModal()">✕</button>
+    </div>
+    <div class="cal-tabs">
+      <button class="cal-tab active" id="calTab1" onclick="switchCalTab(1)">Mis calendarios</button>
+      <button class="cal-tab" id="calTab2" onclick="switchCalTab(2)">Cola de publicación</button>
+      <button class="cal-tab" id="calTab3" onclick="switchCalTab(3)">+ Nuevo calendario</button>
+    </div>
+    <!-- TAB 1: Schedules list -->
+    <div class="cal-body" id="calBody1">
+      <div id="schedulesList"><div class="empty-queue">Cargando calendarios…</div></div>
+    </div>
+    <!-- TAB 2: Queue -->
+    <div class="cal-body" id="calBody2" style="display:none">
+      <div id="queueList"><div class="empty-queue">Cargando cola…</div></div>
+    </div>
+    <!-- TAB 3: New schedule form -->
+    <div class="cal-body" id="calBody3" style="display:none">
+      <div class="cal-section">
+        <div class="cal-section-title">Nuevo calendario de publicación</div>
+
+        <!-- Name + start date row -->
+        <div class="cal-form-grid" style="margin-bottom:12px">
+          <div class="cal-fld">
+            <label class="cal-label">Nombre del calendario</label>
+            <input class="cal-input" id="calName" placeholder="Ej: Publicación semanal Luis" />
+          </div>
+          <div class="cal-fld">
+            <label class="cal-label">Hora de publicación</label>
+            <input class="cal-input" id="calTime" type="time" value="09:00" />
+          </div>
+        </div>
+
+        <!-- Repeat pattern -->
+        <div class="cal-fld" style="margin-bottom:12px">
+          <label class="cal-label">¿Cómo se repite este calendario?</label>
+          <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap">
+            <button class="wday-btn sel" data-repeat="weekly" id="repeatWeekly" onclick="setRepeat('weekly')">Semanal — mismos días cada semana</button>
+            <button class="wday-btn" data-repeat="monthly" id="repeatMonthly" onclick="setRepeat('monthly')">Mensual — mismas fechas cada mes</button>
+            <button class="wday-btn" data-repeat="once" id="repeatOnce" onclick="setRepeat('once')">Sin repetición — solo estas fechas</button>
+          </div>
+          <div style="font-size:9px;color:var(--t3);margin-top:5px" id="repeatHint">Semanal: los días que marques en el calendario se repetirán cada semana.</div>
+        </div>
+
+        <!-- Visual calendar -->
+        <div class="cal-fld" style="margin-bottom:12px">
+          <label class="cal-label">Selecciona los días de publicación <span style="color:var(--cyan);font-family:'DM Mono',monospace;font-size:9px" id="calSelectedCount">— ningún día seleccionado</span></label>
+          <div id="calPickerWrap" style="margin-top:8px;background:var(--s2);border:1px solid var(--b1);border-radius:7px;padding:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <button onclick="calPrevMonth()" style="background:var(--s3);border:1px solid var(--b1);border-radius:4px;padding:3px 9px;color:var(--t2);cursor:pointer;font-size:12px">←</button>
+              <span id="calMonthLabel" style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700"></span>
+              <button onclick="calNextMonth()" style="background:var(--s3);border:1px solid var(--b1);border-radius:4px;padding:3px 9px;color:var(--t2);cursor:pointer;font-size:12px">→</button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center;margin-bottom:6px">
+              <span style="font-size:9px;color:var(--t3);font-family:'DM Mono',monospace">LUN</span>
+              <span style="font-size:9px;color:var(--t3);font-family:'DM Mono',monospace">MAR</span>
+              <span style="font-size:9px;color:var(--t3);font-family:'DM Mono',monospace">MIÉ</span>
+              <span style="font-size:9px;color:var(--t3);font-family:'DM Mono',monospace">JUE</span>
+              <span style="font-size:9px;color:var(--t3);font-family:'DM Mono',monospace">VIE</span>
+              <span style="font-size:9px;color:var(--t3);font-family:'DM Mono',monospace">SÁB</span>
+              <span style="font-size:9px;color:var(--t3);font-family:'DM Mono',monospace">DOM</span>
+            </div>
+            <div id="calDaysGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px"></div>
+          </div>
+        </div>
+
+        <!-- Review window -->
+        <div class="cal-form-grid" style="margin-bottom:4px">
+          <div class="cal-fld">
+            <label class="cal-label">Ventana de revisión antes de publicar</label>
+            <select class="cal-select" id="calReview">
+              <option value="0">Sin revisión — publica directo</option>
+              <option value="2">2 horas</option>
+              <option value="4">4 horas</option>
+              <option value="8">8 horas</option>
+              <option value="24" selected>24 horas</option>
+              <option value="48">48 horas</option>
+            </select>
+          </div>
+          <div class="cal-fld" style="justify-content:flex-end;padding-bottom:2px">
+            <div style="font-size:10px;color:var(--t3);line-height:1.6;margin-top:18px">
+              ✦ Extensión e intención varían automáticamente en cada publicación para evitar repetición.
+            </div>
+          </div>
+        </div>
+
+        <button class="cal-save-btn" onclick="saveSchedule()">Guardar calendario →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: HISTORIAL DE POSTS -->
+<div class="moverlay" id="histModal">
+  <div class="hist-popup" onclick="event.stopPropagation()">
+    <div class="hist-header">
+      <span class="hist-title">📋 Posts generados</span>
+      <button class="mclose" onclick="closeHistModal()">✕</button>
+    </div>
+    <div class="hist-list" id="histList">
+      <div class="hist-empty">Selecciona un perfil para ver su historial</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MODEL='claude-sonnet-4-5';
+const DEFAULT_KEY='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';
+let API_KEY=localStorage.getItem('rockin_api_key')||DEFAULT_KEY;
+
+// ── SUPABASE ──
+const SB_URL='https://iplfugophylxvsfupack.supabase.co';
+const SB_KEY='sb_publishable_zJxeWe53--E3N8i2XYxiOg_1Xj7_5XE';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+let currentUser=null;
+
+// ── LOGIN / LOGOUT ──
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pass=document.getElementById('loginPass').value.trim();
+  const btn=document.getElementById('loginBtn');
+  const err=document.getElementById('loginErr');
+  if(!email||!pass){err.textContent='Completa email y contraseña';return}
+  btn.disabled=true;btn.textContent='Verificando...';err.textContent='';
+  try{
+    // Check against users table
+    const {data,error}=await sb.from('users').select('*').eq('email',email).eq('password_hash',pass).single();
+    if(error||!data)throw new Error('Email o contraseña incorrectos');
+    currentUser=data;
+    localStorage.setItem('rockin_session',JSON.stringify({id:data.id,email:data.email,name:data.name}));
+    onLoginSuccess();
+  }catch(e){
+    err.textContent=e.message;
+    btn.disabled=false;btn.textContent='Entrar →';
+  }
+}
+function doLogout(){
+  currentUser=null;
+  localStorage.removeItem('rockin_session');
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginEmail').value='';
+  document.getElementById('loginPass').value='';
+  document.getElementById('loginErr').textContent='';
+  document.getElementById('userDisplay').style.display='none';
+  document.getElementById('loginBtn').disabled=false;
+  document.getElementById('loginBtn').textContent='Entrar →';
+}
+function onLoginSuccess(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('userDisplay').style.display='flex';
+  document.getElementById('userNameDisplay').textContent=currentUser.name||currentUser.email;
+  loadFromDB();
+}
+// Check persisted session on load
+function checkSession(){
+  try{
+    const s=JSON.parse(localStorage.getItem('rockin_session')||'null');
+    if(s&&s.id){currentUser=s;onLoginSuccess();return true;}
+  }catch(e){}
+  return false;
+}
+
+// ── DB: LOAD ALL DATA ──
+async function loadFromDB(){
+  try{
+    // Load profiles
+    const {data:profs}=await sb.from('profiles').select('*').order('created_at');
+    if(profs)S.profiles=profs.map(r=>({...r.data,id:r.id}));
+    // Load global config
+    const keys=['ideaHistoryByProfile','profileFeedback','globalFeedback','topicRotationIdx','learnedSources'];
+    for(const key of keys){
+      const {data}=await sb.from('global_config').select('value').eq('key',key).single();
+      if(data&&data.value!==undefined){
+        if(key==='ideaHistoryByProfile')S.ideaHistoryByProfile=data.value;
+        if(key==='profileFeedback')S.profileFeedback=data.value;
+        if(key==='globalFeedback')S.globalFeedback=data.value;
+        if(key==='topicRotationIdx')S.topicRotationIdx=data.value;
+        if(key==='learnedSources')S.learnedSources=data.value;
+      }
+    }
+    // Restore active profile from localStorage (per-browser preference)
+    const savedId=localStorage.getItem('rockin_active_profile');
+    if(savedId&&S.profiles.find(p=>p.id===savedId)){
+      selectProfile(savedId);
+    } else {
+      renderHeader();renderPDrop();renderThemes();
+    }
+  }catch(e){
+    console.warn('DB load error:',e);
+    // Fallback to localStorage
+    loadS();renderHeader();renderPDrop();renderThemes();
+  }
+}
+
+// ── DB: SAVE PROFILE ──
+async function saveProfileToDB(profile){
+  const {id,...data}=profile;
+  await sb.from('profiles').upsert({id,data,updated_at:new Date().toISOString()},{onConflict:'id'});
+}
+
+// ── DB: SAVE GLOBAL CONFIG ──
+async function saveConfigToDB(key,value){
+  await sb.from('global_config').upsert({key,value,updated_at:new Date().toISOString()},{onConflict:'key'});
+}
+
+const COLORS=[
+  {bg:'rgba(35,208,217,.15)',fg:'#23D0D9'},{bg:'rgba(111,222,156,.15)',fg:'#6FDE9C'},
+  {bg:'rgba(155,127,255,.15)',fg:'#9B7FFF'},{bg:'rgba(245,200,66,.15)',fg:'#F5C842'},
+  {bg:'rgba(255,82,82,.15)',fg:'#FF5252'},{bg:'rgba(255,153,51,.15)',fg:'#FF9933'},
+];
+const DEF_TYPES=['Provocación','Diagnóstico','Distinción','Framework','Noticia','Opinión'];
+
+// State
+const S={
+  profiles:[],activeId:null,
+  themes:[],
+  ideas:[],selIdea:null,post:'',
+  wsOn:false,genIdeas:false,genPost:false,
+  mColorIdx:0,mSrcs:[],mTypes:[...DEF_TYPES],mSizes:[],editId:null,
+  popLen:null,popIntent:null,pendingIdx:null,
+  // Feedback memory: two buckets
+  profileFeedback:[],   // profile-specific: voice, personality corrections
+  globalFeedback:[],    // global: "sounds like AI", structure issues, etc.
+  // Anti-repetition (per-profile — key is profileId)
+  ideaHistoryByProfile:{},   // {profileId: [titles...]}
+  topicRotationIdx:{},       // per-theme: which topic offset to start from
+  learnedSources:[],         // autonomous learning
+  postPatternsByProfile:{},  // {profileId:[{opener,archetype,ts}]}
+  postHistoryByProfile:{},   // {profileId:[{id,title,theme,intent,len,post,regenComments,ts}]}
+};
+
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function saveS(){
+  // Always save to localStorage as fast local cache
+  try{localStorage.setItem('rce_v6',JSON.stringify({
+    ideaHistoryByProfile:S.ideaHistoryByProfile,
+    profileFeedback:S.profileFeedback.slice(-30),
+    globalFeedback:S.globalFeedback.slice(-30),
+    topicRotationIdx:S.topicRotationIdx,
+    learnedSources:S.learnedSources.slice(-50),
+    postPatternsByProfile:S.postPatternsByProfile,
+    postHistoryByProfile:S.postHistoryByProfile,
+  }))}catch(e){}
+  // Async sync global config to DB (non-blocking)
+  if(currentUser){
+    saveConfigToDB('ideaHistoryByProfile',S.ideaHistoryByProfile).catch(()=>{});
+    saveConfigToDB('topicRotationIdx',S.topicRotationIdx).catch(()=>{});
+    saveConfigToDB('learnedSources',S.learnedSources.slice(-50)).catch(()=>{});
+  }
+}
+function saveFeedbackToDB(){
+  if(!currentUser)return;
+  saveConfigToDB('profileFeedback',S.profileFeedback.slice(-30)).catch(()=>{});
+  saveConfigToDB('globalFeedback',S.globalFeedback.slice(-30)).catch(()=>{});
+}
+function loadS(){
+  // Load cached config from localStorage (fallback / offline)
+  try{
+    const d=JSON.parse(localStorage.getItem('rce_v6')||'{}');
+    if(d.ideaHistoryByProfile)S.ideaHistoryByProfile=d.ideaHistoryByProfile;
+    if(d.profileFeedback)S.profileFeedback=d.profileFeedback;
+    if(d.globalFeedback)S.globalFeedback=d.globalFeedback;
+    if(d.topicRotationIdx)S.topicRotationIdx=d.topicRotationIdx;
+    if(d.learnedSources)S.learnedSources=d.learnedSources;
+    if(d.postPatternsByProfile)S.postPatternsByProfile=d.postPatternsByProfile;
+    if(d.postHistoryByProfile)S.postHistoryByProfile=d.postHistoryByProfile;
+  }catch(e){}
+}
+
+function onAK(v){
+  const c=v.trim();API_KEY=c||DEFAULT_KEY;
+  if(c)localStorage.setItem('rockin_api_key',c);
+  const ok=document.getElementById('akOk');ok.textContent='✓';ok.style.color='var(--green)';
+}
+
+// ── API CALL with auto-retry on 429 ──
+async function apiCall(body,useWebSearch,attempt){
+  attempt=attempt||1;
+  // Always read key fresh — field value takes priority over variable
+  const freshKey=(document.getElementById('akInput')?.value?.trim())||API_KEY||DEFAULT_KEY;
+  const reqBody={model:MODEL,...body};
+  if(useWebSearch){reqBody.tools=[{type:'web_search_20250305',name:'web_search'}]}
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':freshKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify(reqBody)
+  });
+  const d=await r.json();
+  if(r.status===429&&attempt<=3){
+    const wait=attempt*62;// 62s, 124s, 186s
+    showRetry(wait,attempt);
+    await new Promise(res=>setTimeout(res,wait*1000));
+    hideRetry();
+    return apiCall(body,useWebSearch,attempt+1);
+  }
+  if(!r.ok)throw new Error(`API ${r.status}: ${d?.error?.message||JSON.stringify(d)}`);
+  // When web_search is used, model may return multiple content blocks
+  // Concatenate all text blocks in order
+  if(d.content&&Array.isArray(d.content)){
+    const texts=d.content.filter(b=>b.type==='text').map(b=>b.text||'');
+    return texts.join('\n');
+  }
+  return '';
+}
+function showRetry(secs,attempt){
+  let remaining=secs;
+  const banner=document.getElementById('errBanner');
+  banner.classList.add('vis');
+  banner.style.color='var(--amber)';
+  banner.style.background='rgba(245,200,66,.1)';
+  banner.style.borderColor='rgba(245,200,66,.2)';
+  const tick=setInterval(()=>{
+    remaining--;
+    banner.textContent=`⏳ Límite de tokens alcanzado. Reintentando en ${remaining}s… (intento ${attempt}/3)`;
+    if(remaining<=0)clearInterval(tick);
+  },1000);
+  banner.textContent=`⏳ Límite de tokens alcanzado. Reintentando en ${secs}s… (intento ${attempt}/3)`;
+  banner._retryTimer=tick;
+}
+function hideRetry(){
+  const banner=document.getElementById('errBanner');
+  if(banner._retryTimer)clearInterval(banner._retryTimer);
+  banner.classList.remove('vis');
+  banner.style.color='var(--red)';
+  banner.style.background='rgba(255,82,82,.1)';
+  banner.style.borderColor='rgba(255,82,82,.2)';
+}
+
+// ── HELPERS ──
+function initials(n){return(n||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase()}
+function nfmt(s){return(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function showErr(m){const b=document.getElementById('errBanner');b.textContent=m;b.classList.add('vis');setTimeout(()=>b.classList.remove('vis'),9000)}
+function hideErr(){document.getElementById('errBanner').classList.remove('vis')}
+function cleanJSON(raw){
+  if(!raw)return'[]';
+  // Remove markdown code fences (including multiline)
+  let s=raw.trim();
+  s=s.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+  return s;
+}
+function extractJSON(raw,type){
+  // type: 'array' or 'object'
+  if(!raw)return null;
+  const clean=cleanJSON(raw);
+  // Try direct parse first
+  try{return JSON.parse(clean)}catch(e){}
+  // Find the outermost array or object
+  const open=type==='array'?'[':'{';
+  const close=type==='array'?']':'}';
+  const start=raw.indexOf(open);
+  if(start===-1)return null;
+  // Find matching close bracket
+  let depth=0,inStr=false,escape=false;
+  for(let i=start;i<raw.length;i++){
+    const c=raw[i];
+    if(escape){escape=false;continue}
+    if(c==='\\'){escape=true;continue}
+    if(c==='"'&&!escape){inStr=!inStr;continue}
+    if(inStr)continue;
+    if(c===open)depth++;
+    if(c===close){depth--;if(depth===0){try{return JSON.parse(raw.substring(start,i+1))}catch(e){return null}}}
+  }
+  return null;
+}
+
+// ── INIT ──
+function init(){
+  loadS();
+  const savedKey=localStorage.getItem('rockin_api_key');
+  if(savedKey){document.getElementById('akInput').value=savedKey;}
+  const ok=document.getElementById('akOk');ok.textContent='✓';ok.style.color='var(--green)';
+  renderCDots();renderCTypes();renderPSrcs();
+
+  document.getElementById('pbtn').addEventListener('click',function(e){e.stopPropagation();document.getElementById('pdrop').classList.toggle('open')});
+  document.getElementById('daddBtn').addEventListener('click',function(e){e.stopPropagation();openModal(null)});
+  document.getElementById('addThemeBtn').addEventListener('click',function(){document.getElementById('addthemeForm').classList.toggle('open')});
+  document.addEventListener('click',function(){document.getElementById('pdrop').classList.remove('open')});
+  document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal()});
+  document.getElementById('popupOverlay').addEventListener('click',function(e){if(e.target===this)closePopup()});
+  document.getElementById('regenOverlay').addEventListener('click',function(e){if(e.target===this)closeRegenPopup()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closePopup();closeRegenPopup();closeHistModal();closeCalModal()}});
+  document.getElementById('atfInput').addEventListener('keydown',function(e){if(e.key==='Enter')addTheme()});
+  document.getElementById('loginPass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin()});
+  document.getElementById('loginEmail').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('loginPass').focus()});
+  document.getElementById('histModal').addEventListener('click',function(e){if(e.target===this)closeHistModal()});
+  document.getElementById('calModal').addEventListener('click',function(e){if(e.target===this)closeCalModal()});
+
+  if(!checkSession()){
+    renderHeader();renderPDrop();renderThemes();
+  }
+}
+
+// ── HISTORY MODAL ──
+let histActiveProfileId=null;
+
+function openHistModal(){
+  histActiveProfileId=S.activeId||null;
+  // Update modal title to show profile name
+  const p=getProf();
+  document.querySelector('#histModal .hist-title').textContent='📋 Posts generados'+(p?' — '+p.name:'');
+  renderHistList();
+  document.getElementById('histModal').classList.add('open');
+}
+function closeHistModal(){document.getElementById('histModal').classList.remove('open')}
+
+function renderHistList(){
+  const el=document.getElementById('histList');
+  if(!histActiveProfileId){el.innerHTML='<div class="hist-empty">Selecciona un perfil arriba</div>';return}
+  const posts=(S.postHistoryByProfile[histActiveProfileId]||[]);
+  if(!posts.length){el.innerHTML='<div class="hist-empty">Aún no hay posts generados para este perfil.<br>Genera tu primer post y aparecerá aquí.</div>';return}
+  el.innerHTML='';
+  posts.forEach((entry,i)=>{
+    const date=new Date(entry.ts).toLocaleDateString('es',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+    const updDate=entry.updatedTs&&entry.updatedTs!==entry.ts?new Date(entry.updatedTs).toLocaleDateString('es',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):null;
+    const hasRegens=entry.regenComments&&entry.regenComments.length>0;
+    const card=document.createElement('div');
+    card.className='hist-card';
+    card.innerHTML=`
+      <div class="hist-card-hdr" onclick="toggleHistCard(this)">
+        <div style="flex:1;min-width:0">
+          <div class="hist-card-meta">
+            <span class="hist-tag">${entry.theme||'Sin temática'}</span>
+            <span class="hist-tag hist-tag-intent">${entry.intent||''}</span>
+            <span class="hist-tag hist-tag-len">${entry.len||''}</span>
+            ${hasRegens?`<span style="font-size:9px;font-family:'DM Mono',monospace;color:var(--purple)">↻ ${entry.regenComments.length} regeneración${entry.regenComments.length>1?'es':''}</span>`:''}
+          </div>
+          <div class="hist-card-title">${entry.title||'Post sin título'}</div>
+        </div>
+        <div class="hist-card-date">${updDate?'Actualizado '+updDate:date}</div>
+      </div>
+      <div class="hist-card-body">
+        <div class="hist-card-post">${entry.post||''}</div>
+        ${hasRegens?`
+        <div class="hist-regen-section">
+          <div class="hist-regen-title">💬 Feedback de regeneraciones</div>
+          ${entry.regenComments.map(r=>`
+            <div class="hist-regen-item">
+              <div class="hist-regen-comment">"${r.comment}"</div>
+              <div class="hist-regen-date">${new Date(r.ts).toLocaleDateString('es',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+            </div>
+          `).join('')}
+        </div>`:''}
+        <div class="hist-card-actions">
+          <button class="hist-copy-btn" onclick="copyHistPost(${i})">📋 Copiar post</button>
+        </div>
+      </div>`;
+    el.appendChild(card);
+  });
+}
+
+function toggleHistCard(hdr){
+  hdr.closest('.hist-card').classList.toggle('open');
+}
+
+function copyHistPost(i){
+  const posts=(S.postHistoryByProfile[histActiveProfileId]||[]);
+  const entry=posts[i];
+  if(!entry)return;
+  navigator.clipboard.writeText(entry.post).then(()=>{
+    const btn=event.target;const o=btn.textContent;
+    btn.textContent='✓ Copiado';setTimeout(()=>btn.textContent=o,2000);
+  }).catch(()=>{
+    const t=document.createElement('textarea');t.value=entry.post;
+    document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();
+  });
+}
+
+// ── PROFILES ──
+function getProf(){return S.profiles.find(p=>p.id===S.activeId)||null}
+
+function selectProfile(id){
+  S.activeId=id;S.ideas=[];S.selIdea=null;S.post='';
+  localStorage.setItem('rockin_active_profile',id);
+  const p=S.profiles.find(x=>x.id===id);
+  if(p&&p.themes&&p.themes.length){S.themes=clone(p.themes)}
+  else{S.themes=[]}
+  saveS();
+  document.getElementById('pdrop').classList.remove('open');
+  renderHeader();renderPDrop();renderThemes();resetPost();
+  document.getElementById('ilist').innerHTML=`<div class="empty"><div style="font-size:22px;opacity:.3">✦</div><div style="font-size:12px">Perfil: ${p?p.name:'genérico'}</div><div style="font-size:10px;color:var(--t3)">Selecciona temáticas y presiona "Investigar ahora"</div></div>`;
+  // Check LinkedIn connection status for this profile
+  setTimeout(checkLinkedInStatus, 100)
+  document.getElementById('calBtn').style.display='flex'
+}
+
+function renderHeader(){
+  const p=getProf();
+  const av=document.getElementById('pav'),nm=document.getElementById('pname');
+  if(p){const c=COLORS[p.colorIdx||0];av.style.background=c.bg;av.style.color=c.fg;av.textContent=initials(p.name);nm.textContent=p.name;}
+  else{av.style.background='var(--s2)';av.style.color='var(--t3)';av.textContent='?';nm.textContent='Sin perfil';}
+}
+
+function renderPDrop(){
+  const el=document.getElementById('plist');el.innerHTML='';
+  if(!S.profiles.length){el.innerHTML='<div style="padding:7px 11px;font-size:10px;color:var(--t3)">Sin perfiles. Agrega uno →</div>';return}
+  S.profiles.forEach(p=>{
+    const c=COLORS[p.colorIdx||0];
+    const d=document.createElement('div');
+    d.className='di'+(p.id===S.activeId?' act':'');
+    d.innerHTML=`<div style="width:26px;height:26px;border-radius:50%;background:${c.bg};color:${c.fg};display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:10px;font-weight:800;flex-shrink:0">${initials(p.name)}</div><div style="flex:1"><div class="di-name">${p.name}</div><div class="di-role">${p.role}</div></div><button style="background:var(--s2);border:1px solid var(--b1);border-radius:3px;padding:2px 6px;color:var(--t2);cursor:pointer;font-size:9px;flex-shrink:0" onclick="event.stopPropagation();openModal('${p.id}')">✏ Editar</button>`;
+    d.addEventListener('click',function(e){if(e.target.tagName==='BUTTON')return;e.stopPropagation();selectProfile(p.id)});
+    el.appendChild(d);
+  });
+}
+
+// ── THEMES (panel izquierdo) ──
+function renderThemes(){
+  const el=document.getElementById('themelist');
+  if(!S.themes.length){
+    el.innerHTML=`<div style="padding:20px 10px;text-align:center;font-size:10px;color:var(--t3)">${getProf()?'Las temáticas se generaron al guardar el perfil.<br><br>Usa "+ Agregar" para añadir más.':'Selecciona un perfil<br>para ver las temáticas'}</div>`;
+    return;
+  }
+  el.innerHTML='';
+  S.themes.forEach((theme,ti)=>{
+    const grp=document.createElement('div');
+    grp.className='themegroup'+(theme.open?' open':'');
+
+    const hdr=document.createElement('div');
+    hdr.className='themegroup-hdr'+(theme.selected?' sel':'')+(theme.open?' expanded':'');
+    hdr.innerHTML=`<div class="themegroup-check">✓</div><div class="themegroup-name">${theme.name}</div><div class="themegroup-chevron">▾</div><div class="theme-del" title="Eliminar temática" onclick="event.stopPropagation();deleteTheme(${ti})">✕</div>`;
+    hdr.addEventListener('click',function(e){
+      if(e.target.classList.contains('theme-del'))return;
+      const rect=hdr.getBoundingClientRect();
+      const clickX=e.clientX-rect.left;
+      if(clickX>rect.width-50){
+        S.themes[ti].open=!S.themes[ti].open;
+        grp.classList.toggle('open',S.themes[ti].open);
+        hdr.classList.toggle('expanded',S.themes[ti].open);
+      } else {
+        S.themes[ti].selected=!S.themes[ti].selected;
+        S.themes[ti].topics.forEach(t=>t.selected=S.themes[ti].selected);
+        hdr.classList.toggle('sel',S.themes[ti].selected);
+        renderThemes();
+      }
+      saveS();
+    });
+    grp.appendChild(hdr);
+
+    const tlist=document.createElement('div');
+    tlist.className='topiclist';
+    (theme.topics||[]).forEach((topic,ki)=>{
+      const titem=document.createElement('div');
+      titem.className='topicitem'+(topic.selected?' sel':'');
+      titem.innerHTML=`<div class="topicck">✓</div><div class="topicname">${topic.name}</div>`;
+      titem.addEventListener('click',function(e){
+        e.stopPropagation();
+        S.themes[ti].topics[ki].selected=!S.themes[ti].topics[ki].selected;
+        // Update parent selected state
+        S.themes[ti].selected=S.themes[ti].topics.some(t=>t.selected);
+        titem.classList.toggle('sel',S.themes[ti].topics[ki].selected);
+        const phdr=grp.querySelector('.themegroup-hdr');
+        phdr.classList.toggle('sel',S.themes[ti].selected);
+        saveS();
+      });
+      tlist.appendChild(titem);
+    });
+    grp.appendChild(tlist);
+    el.appendChild(grp);
+  });
+}
+
+// ── DELETE THEME ──
+function deleteTheme(ti){
+  if(!confirm(`¿Eliminar la temática "${S.themes[ti]?.name}"?`))return;
+  S.themes.splice(ti,1);
+  // Sync to active profile
+  const pidx=S.profiles.findIndex(x=>x.id===S.activeId);
+  if(pidx>=0){
+    S.profiles[pidx].themes=[...S.themes];
+    if(currentUser)saveProfileToDB(S.profiles[pidx]).catch(()=>{});
+  }
+  saveS();renderThemes();
+}
+
+// ── ADD THEME (community manager types keyword → IA generates theme + topics) ──
+async function addTheme(){
+  const input=document.getElementById('atfInput');
+  const keyword=input.value.trim();
+  if(!keyword)return;
+
+  const p=getProf();
+  const loading=document.getElementById('atfLoading');
+  const btn=document.querySelector('#addthemeForm .atf-btn');
+  loading.style.display='block';btn.disabled=true;input.disabled=true;
+
+  try{
+    const profileCtx=p?`Perfil: ${p.name}, ${p.role}${p.company?' en '+p.company:''}. Industria: ${(p.industry||'N/A').substring(0,60)}. Temas: ${(p.topics||'N/A').substring(0,100)}.`:'Sin perfil.';
+
+    const prompt=`${profileCtx}\nTemática solicitada: "${keyword}"\n\nGenera nombre y 5 tópicos específicos para LinkedIn. JSON:\n{"name":"Nombre (máx 4 palabras)","topics":["T1","T2","T3","T4","T5"]}`;
+
+    const raw=await apiCall({max_tokens:600,messages:[{role:'user',content:prompt}]},true);
+    // Extract JSON even if model adds preamble text
+    let data;
+    try{
+      data=JSON.parse(cleanJSON(raw));
+    }catch(e){
+      // Try to find JSON object inside the response
+      const match=raw.match(/\{[\s\S]*\}/);
+      if(!match)throw new Error('No se pudo extraer JSON de la respuesta');
+      data=JSON.parse(match[0]);
+    }
+    if(!data.name||!data.topics)throw new Error('Respuesta incompleta del modelo');
+
+    const newTheme={
+      name:data.name,
+      topics:(data.topics||[]).map(t=>({name:t,selected:false})),
+      open:true,
+      selected:false,
+    };
+    S.themes.push(newTheme);
+
+    // Also save to profile
+    if(p){
+      const idx=S.profiles.findIndex(x=>x.id===S.activeId);
+      if(idx>=0){
+        if(!S.profiles[idx].themes)S.profiles[idx].themes=[];
+        S.profiles[idx].themes.push(newTheme);
+      }
+    }
+
+    saveS();renderThemes();
+    // Persist updated themes to DB for the active profile
+    if(currentUser&&p){
+      const pidx=S.profiles.findIndex(x=>x.id===S.activeId);
+      if(pidx>=0)saveProfileToDB(S.profiles[pidx]).catch(()=>{});
+    }
+    input.value='';
+    document.getElementById('addthemeForm').classList.remove('open');
+  }catch(e){
+    console.error(e);showErr('⚠ Error generando temática: '+e.message);
+  }
+
+  loading.style.display='none';btn.disabled=false;input.disabled=false;
+}
+
+// ── MODAL PERFIL ──
+function openModal(editId){
+  document.getElementById('pdrop').classList.remove('open');
+  S.editId=editId||null;S.mSizes=[];
+
+  if(editId){
+    const p=S.profiles.find(x=>x.id===editId);if(!p)return;
+    document.getElementById('modalTitle').textContent='✏ Editar perfil';
+    document.getElementById('bsave').textContent='Guardar cambios →';
+    ['fName','fRole','fCo','fCtry','fExp','fEdu','fInd','fCli','fTop','fTone','fNev','fAud','fCons'].forEach(id=>{
+      const map={fName:'name',fRole:'role',fCo:'company',fCtry:'country',fExp:'experience',fEdu:'education',fInd:'industry',fCli:'clients',fTop:'topics',fTone:'tone',fNev:'never',fAud:'audience',fCons:'consumes'};
+      setVal(id,p[map[id]]||'');
+    });
+    S.mColorIdx=p.colorIdx||0;
+    S.mSrcs=p.srcs?p.srcs.map(s=>typeof s==='string'?{name:s,why:'',link:''}:s):[];
+    S.mTypes=p.types&&p.types.length?[...p.types]:[...DEF_TYPES];
+    S.mSizes=p.audienceSizes||[];
+  } else {
+    document.getElementById('modalTitle').textContent='✦ Nuevo perfil';
+    document.getElementById('bsave').textContent='Guardar perfil →';
+    ['fName','fRole','fCo','fCtry','fExp','fEdu','fInd','fCli','fTop','fTone','fNev','fAud','fCons'].forEach(id=>{setVal(id,'')});
+    S.mColorIdx=0;S.mSrcs=[];S.mTypes=[...DEF_TYPES];S.mSizes=[];
+  }
+  renderAv(editId?initials(getVal('fName')):'?');
+  renderCDots();renderCTypes();renderPSrcs();renderMSizes();
+  document.getElementById('modal').classList.add('open');
+}
+
+function setVal(id,v){const el=document.getElementById(id);if(el)el.value=v}
+function getVal(id){const el=document.getElementById(id);return el?el.value.trim():''}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+function updateAv(){renderAv(initials(getVal('fName'))||'?')}
+function renderAv(i){const el=document.getElementById('avprev');const c=COLORS[S.mColorIdx];el.style.background=c.bg;el.style.color=c.fg;if(i!==undefined)el.textContent=i;}
+function renderCDots(){
+  const el=document.getElementById('cdots');el.innerHTML='';
+  COLORS.forEach((c,i)=>{const d=document.createElement('div');d.className='cdot'+(i===S.mColorIdx?' sel':'');d.style.background=c.fg;d.onclick=()=>{S.mColorIdx=i;renderCDots();renderAv(initials(getVal('fName'))||'?')};el.appendChild(d)});
+}
+function renderMSizes(){document.querySelectorAll('.msz-btn').forEach(b=>b.classList.toggle('sel',S.mSizes.includes(b.dataset.sz)))}
+function toggleSz(btn){const sz=btn.dataset.sz;S.mSizes=S.mSizes.includes(sz)?S.mSizes.filter(x=>x!==sz):[...S.mSizes,sz];btn.classList.toggle('sel',S.mSizes.includes(sz))}
+function renderCTypes(){
+  const el=document.getElementById('ctypes');el.innerHTML='';
+  const all=[...DEF_TYPES];S.mTypes.forEach(t=>{if(!all.includes(t))all.push(t)});
+  all.forEach(t=>{const b=document.createElement('button');b.className='ctbtn'+(S.mTypes.includes(t)?' sel':'');b.textContent=t;b.onclick=()=>{S.mTypes=S.mTypes.includes(t)?S.mTypes.filter(x=>x!==t):[...S.mTypes,t];renderCTypes()};el.appendChild(b)});
+}
+function addCT(){const i=document.getElementById('nct');const v=i.value.trim();if(!v)return;if(!S.mTypes.includes(v))S.mTypes.push(v);i.value='';renderCTypes()}
+function renderPSrcs(){
+  const el=document.getElementById('psrcs');el.innerHTML='';
+  S.mSrcs.forEach((s,i)=>{
+    const d=document.createElement('div');d.className='psrccard';
+    d.innerHTML=`<div class="psrccard-top"><div class="psrccard-fields">
+      <input placeholder="Nombre de la fuente (ej: HBR, The Rundown...)" value="${s.name||''}" oninput="S.mSrcs[${i}].name=this.value" />
+      <input placeholder="¿Por qué le interesa?" value="${s.why||''}" oninput="S.mSrcs[${i}].why=this.value" />
+      <input placeholder="Link (opcional)" value="${s.link||''}" oninput="S.mSrcs[${i}].link=this.value" />
+    </div><button class="psrcrm" onclick="rmPSrc(${i})">✕</button></div>`;
+    el.appendChild(d);
+  });
+}
+function addPSrc(){S.mSrcs.push({name:'',why:'',link:''});renderPSrcs()}
+function rmPSrc(i){S.mSrcs.splice(i,1);renderPSrcs()}
+
+async function saveProfile(){
+  const name=getVal('fName'),role=getVal('fRole');
+  if(!name||!role){alert('Nombre y cargo son obligatorios');return}
+  const bsave=document.getElementById('bsave');
+  bsave.textContent='Analizando perfil...';bsave.disabled=true;
+
+  // Capture editId NOW before async operations can change state
+  const currentEditId=S.editId||null;
+
+  const profileData={
+    name,role,
+    company:getVal('fCo'),country:getVal('fCtry'),
+    experience:getVal('fExp'),education:getVal('fEdu'),
+    industry:getVal('fInd'),clients:getVal('fCli'),
+    topics:getVal('fTop'),tone:getVal('fTone'),never:getVal('fNev'),
+    audience:getVal('fAud'),audienceSizes:[...S.mSizes],
+    consumes:getVal('fCons'),
+    srcs:S.mSrcs.filter(s=>s&&s.name&&(s.name+'').trim()),
+    types:S.mTypes.length?[...S.mTypes]:[...DEF_TYPES],
+    colorIdx:S.mColorIdx,
+    themes:[],
+  };
+
+  // Generate thematic structure — if it fails, continue without themes
+  try{
+    bsave.textContent='Investigando tematicas...';
+    const themes=await generateProfileThemes(profileData);
+    if(themes&&themes.length)profileData.themes=themes;
+  }catch(e){
+    console.warn('Theme generation failed:',e);
+  }
+
+  let targetId;
+  if(currentEditId){
+    const idx=S.profiles.findIndex(x=>x.id===currentEditId);
+    if(idx>=0){
+      const existing=S.profiles[idx].themes||[];
+      if(!profileData.themes.length)profileData.themes=existing;
+      S.profiles[idx]={...S.profiles[idx],...profileData};
+    }
+    targetId=currentEditId;
+  } else {
+    profileData.id=Date.now().toString();
+    targetId=profileData.id;
+    S.profiles.push(profileData);
+  }
+
+  S.editId=null;
+  bsave.textContent='Guardando...';
+  // Save to Supabase DB
+  try{
+    await saveProfileToDB({...profileData,id:targetId});
+  }catch(e){
+    console.warn('DB save error:',e);
+    showErr('⚠ Error al guardar en la nube. Los datos se guardaron localmente.');
+  }
+  bsave.textContent='Guardar perfil';
+  bsave.disabled=false;
+  saveS();
+  closeModal();
+  renderPDrop();
+  // Save active profile preference locally
+  localStorage.setItem('rockin_active_profile',targetId);
+  selectProfile(targetId);
+}
+
+// ── GENERATE THEMATIC STRUCTURE WITH WEB SEARCH ──
+// Split into 2 calls to stay under 10k token/min rate limit
+async function generateProfileThemes(p){
+  // Compact profile summary — keep under 400 tokens input
+  const summary=`${p.name}, ${p.role}${p.company?' en '+p.company:''}. Industria: ${(p.industry||'').substring(0,80)}. Temas: ${(p.topics||'').substring(0,120)}. Audiencia: ${(p.audience||'').substring(0,80)}. Fuentes: ${p.srcs&&p.srcs.length?p.srcs.filter(s=>s.name).map(s=>s.name).slice(0,4).join(', '):'N/A'}.`;
+
+  // CALL 1: Identify 4 theme names only (very short output)
+  const themeNamesRaw=await apiCall({
+    max_tokens:200,
+    messages:[{role:'user',content:`Perfil: ${summary}\n\nIdentifica 4 temáticas de LinkedIn para este perfil. Solo los nombres, JSON: ["Tema1","Tema2","Tema3","Tema4"]`}]
+  },true);
+
+  let themeNames;
+  try{themeNames=JSON.parse(cleanJSON(themeNamesRaw))}
+  catch(e){themeNames=['Growth Strategy','Marketing Digital','IA Aplicada','Liderazgo']}
+  if(!Array.isArray(themeNames)||!themeNames.length)themeNames=['Growth','Marketing','IA','Estrategia'];
+
+  // CALL 2: Generate 5 topics per theme (separate call, no web search needed)
+  const topicsPrompt=`Para estas 4 temáticas de LinkedIn, genera 5 tópicos específicos cada una.
+Temáticas: ${themeNames.join(' | ')}
+JSON: [{"name":"Tema","topics":["T1","T2","T3","T4","T5"]}]
+Solo JSON válido.`;
+
+  const topicsRaw=await apiCall({max_tokens:800,messages:[{role:'user',content:topicsPrompt}]},false);
+  let parsed;
+  try{parsed=JSON.parse(cleanJSON(topicsRaw))}
+  catch(e){
+    const m=topicsRaw.match(/\[[\s\S]*\]/);
+    try{parsed=m?JSON.parse(m[0]):null}catch(e2){parsed=null}
+    if(!parsed)parsed=themeNames.map(n=>({name:n,topics:[n+' estratégico',n+' operativo',n+' en LATAM',n+' con IA',n+' para B2B']}));
+  }
+  if(!Array.isArray(parsed))throw new Error('Invalid themes response');
+
+  return parsed.map(t=>({
+    name:t.name,
+    topics:(t.topics||[]).map(tp=>({name:tp,selected:false})),
+    open:false,
+    selected:false,
+  }));
+}
+
+// ── WEB SEARCH TOGGLE ──
+function toggleWS(){
+  S.wsOn=!S.wsOn;
+  const tog=document.getElementById('wstog');
+  const lbl=document.getElementById('wsLabel');
+  tog.classList.toggle('on',S.wsOn);
+  lbl.textContent=S.wsOn?'Web Search':'IA Generativa';
+}
+
+// ── SYSTEM PROMPT — full ──
+function buildSP(p){
+  if(!p)return'Eres un experto en contenido thought leadership para LinkedIn. Directo, datos antes que adjetivos, orientado a sistemas. Sin motivación vacía ni jerga genérica.';
+  const szLabel={'startups':'Startups (1-50)','pymes':'PYMEs (50-200)','mediana':'Medianas (200-1k)','enterprise':'Enterprise (1k+)'};
+  const sizes=(p.audienceSizes||[]).map(s=>szLabel[s]||s).join(', ')||'Variado';
+  const srcsCtx=p.srcs&&p.srcs.length?'\nFuentes de referencia: '+p.srcs.filter(s=>s.name).map(s=>s.name).slice(0,5).join(', '):'';
+  return`Eres el agente de contenido de ${p.name}, ${p.role}${p.company?' de '+p.company:''}.
+
+IDENTIDAD: ${p.experience?p.experience+'. ':''}${p.education?'Formación: '+p.education+'. ':''}${p.industry?'Industria: '+p.industry+'. ':''}${p.clients?'Ha trabajado con: '+p.clients+'. ':''}${p.country?'Región: '+p.country+'.':''}
+
+VOZ: ${p.tone||'Directo. Sin rodeos. Datos antes que adjetivos. Tono entre iguales.'}
+JAMÁS: ${p.never||'Jerga de agencia, motivación vacía, listicles sin argumento, cerrar con "¿qué opinas?"'}
+
+EXPERTISE: ${p.topics||'Growth, marketing, estrategia de negocio.'}
+
+AUDIENCIA: ${p.audience||'Directivos y líderes empresariales.'} Tamaño empresa: ${sizes}.${srcsCtx}
+
+REGLAS LINKEDIN: El 1er párrafo es el gancho — debe obligar a hacer clic en "ver más". Nunca empieces con el título. Cierra con afirmación contundente, jamás pregunta abierta. Max 2 emojis si el tono lo permite. Max 3 hashtags al final. Sin CTA comercial directo.`;
+}
+
+// ── TRUSTED SOURCES ──
+// The model is instructed to prefer these. Grouped by domain so the prompt stays concise.
+const TRUSTED_SOURCES={
+  marketing:['HubSpot Blog','HBR (Harvard Business Review)','Marketing Week','Neil Patel Blog','Search Engine Journal','Forrester Research','Gartner','MarketingProfs'],
+  growth:['Growth.Design','Andrew Chen blog','Lenny Rachitsky (Lenny Newsletter)','First Round Review','a16z','Sequoia Capital blog'],
+  business:['McKinsey & Company','Deloitte Insights','Bain & Company','PwC Insights','EY Insights','KPMG Insights','MIT Sloan Management Review','Strategy+Business'],
+  latam:['Contxto','LAVCA','Forbes México','Expansión','El Economista','Semana Económica'],
+  tech_ai:['The Rundown AI','Bens Bites','MIT Technology Review','Wired','TechCrunch','VentureBeat'],
+  linkedin:['LinkedIn Newsroom','LinkedIn Marketing Blog','Richard van der Blom','Justin Welsh blog'],
+};
+function getTrustedForProfile(p){
+  const all=[...TRUSTED_SOURCES.business,...TRUSTED_SOURCES.marketing];
+  const txt=((p?.industry||'')+(p?.topics||'')).toLowerCase();
+  if(txt.match(/ia|ai|tech|software|saas/))all.push(...TRUSTED_SOURCES.tech_ai);
+  if(txt.match(/latam|m.xico|colombia|espa.a|latin/))all.push(...TRUSTED_SOURCES.latam);
+  if(txt.match(/growth|startup|scale/))all.push(...TRUSTED_SOURCES.growth);
+  if(txt.match(/linkedin|social|content/))all.push(...TRUSTED_SOURCES.linkedin);
+  // Add learned sources (sorted by useCount)
+  const learned=S.learnedSources.sort((a,b)=>b.useCount-a.useCount).slice(0,8).map(s=>s.name);
+  return [...new Set([...all,...learned])].slice(0,15);
+}
+
+// ── AUTONOMOUS SOURCE LEARNING ──
+// When ideas reference a source, extract its domain and learn it if it looks authoritative
+function learnSourceFromIdeas(ideas){
+  const skipDomains=['twitter','x.com','instagram','facebook','tiktok','reddit','quora','medium','substack'];
+  const authoritySignals=['research','journal','review','insight','report','study','blog','institute','school','university','hbr','mckinsey','deloitte','gartner','forrester','mit','stanford','harvard','wired','techcrunch','venturebeat'];
+  ideas.forEach(idea=>{
+    const src=idea.source;
+    if(!src||src.length<3)return;
+    const srcLower=src.toLowerCase();
+    // Skip social/random sources
+    if(skipDomains.some(d=>srcLower.includes(d)))return;
+    // Check if looks authoritative
+    const looksAuthoritative=authoritySignals.some(s=>srcLower.includes(s))||src.length>5;
+    if(!looksAuthoritative)return;
+    // Check if already known (in TRUSTED_SOURCES or already learned)
+    const allTrusted=Object.values(TRUSTED_SOURCES).flat().map(s=>s.toLowerCase());
+    const alreadyKnown=allTrusted.some(t=>t.includes(srcLower.substring(0,8))||srcLower.includes(t.substring(0,8)));
+    const alreadyLearned=S.learnedSources.find(s=>s.name.toLowerCase()===srcLower);
+    if(alreadyLearned){
+      alreadyLearned.useCount++;
+      alreadyLearned.lastSeen=Date.now();
+    } else if(!alreadyKnown){
+      S.learnedSources.push({name:src,addedAt:Date.now(),lastSeen:Date.now(),useCount:1});
+      console.log('[Source Learning] New source learned:',src);
+    }
+  });
+  if(ideas.some(i=>i.source))saveS();
+}
+
+// ── GENERATE IDEAS ──
+async function generateIdeas(){
+  if(S.genIdeas)return;
+  const p=getProf();
+  if(!p&&!confirm('Sin perfil. ¿Continuar con voz genérica?'))return;
+
+  // ── Build topic selection with rotation ──
+  const selectedThemes=S.themes.filter(t=>t.selected);
+  if(!selectedThemes.length&&!confirm('No hay temáticas seleccionadas. ¿Generar ideas generales del perfil?'))return;
+
+  // For each selected theme, pick rotating topics (3 per theme max)
+  const ideasPerTheme=3;
+  const topicsByTheme=[];
+  selectedThemes.forEach(theme=>{
+    const allTopics=theme.topics||[];
+    if(!allTopics.length)return;
+    // Rotate: increment offset each generation
+    const key=theme.name;
+    const offset=(S.topicRotationIdx[key]||0)%allTopics.length;
+    S.topicRotationIdx[key]=(offset+ideasPerTheme)%allTopics.length;
+    // If some topics manually selected, use those (no rotation)
+    const manual=allTopics.filter(t=>t.selected);
+    const pool=manual.length?manual:allTopics;
+    const picked=[];
+    for(let i=0;i<Math.min(ideasPerTheme,pool.length);i++){
+      picked.push(pool[(offset+i)%pool.length]);
+    }
+    topicsByTheme.push({theme:theme.name,topics:picked.map(t=>t.name)});
+  });
+
+  // ── Anti-repetition: pass last 20 idea titles ──
+  if(!S.ideaHistoryByProfile[S.activeId])S.ideaHistoryByProfile[S.activeId]=[];
+  const pastIdeas=S.ideaHistoryByProfile[S.activeId].slice(-15);
+  const antiRepeat=pastIdeas.length?`
+IDEAS YA GENERADAS (NO repetir ángulos similares):
+${pastIdeas.map(t=>'- '+t).join('\n')}`:'';
+
+  // ── Trusted sources ──
+  const trusted=getTrustedForProfile(p);
+  const profileSrcs=p&&p.srcs&&p.srcs.length?p.srcs.filter(s=>s.name).map(s=>s.name).slice(0,5):[];
+  const allSrcs=[...new Set([...profileSrcs,...trusted])].slice(0,15);
+
+  hideErr();S.genIdeas=true;
+  const btn=document.getElementById('genBtn');btn.classList.add('loading');btn.disabled=true;
+  S.ideas=[];S.selIdea=null;S.post='';
+  document.getElementById('ilist').innerHTML=`<div class="empty"><div style="font-size:20px;animation:spin .8s linear infinite">↻</div><div style="font-size:11px">Investigando ideas…</div></div>`;
+  resetPost();saveS();
+
+  const sp=buildSP(p);
+
+  // Build topic instructions: exactly 3 ideas per theme
+  const themeInstr=topicsByTheme.length
+    ?topicsByTheme.map(t=>`Temática "${t.theme}": genera exactamente ${ideasPerTheme} ideas, una por cada tópico: ${t.topics.join(' | ')}`).join('\n')
+    :'Genera ideas sobre los temas de expertise del perfil.';
+
+  // Build compact but complete profile identity for ideas
+  const profIdentity=p?`PERFIL: ${p.name}, ${p.role}${p.company?' en '+p.company:''}. ${p.tone?'Voz: '+p.tone.substring(0,80)+'.':''} ${p.topics?'Temas: '+p.topics.substring(0,100)+'.':''} ${p.audience?'Audiencia: '+p.audience.substring(0,80)+'.':''} NUNCA mezcles temas de otros perfiles.`:'';
+
+  const up=`${profIdentity}
+
+${themeInstr}
+${antiRepeat}
+
+Fuentes: ${allSrcs.slice(0,6).join(', ')}.
+
+Responde SOLO con JSON, sin texto ni markdown:
+[{"title":"máx 8 palabras","theme":"temática","territory":"tópico","hook":"máx 20 palabras","angle":"1 oración","source":"fuente","image":"1 oración"}]`;
+
+  try{
+    const raw=await apiCall({max_tokens:3000,messages:[{role:'user',content:up}]},S.wsOn);
+    console.log('[DEBUG] Raw response:', raw.substring(0,300));
+    const ideas=extractJSON(raw,'array');
+    if(!ideas||!Array.isArray(ideas)||!ideas.length){
+      throw new Error('Sin ideas en la respuesta. Intenta de nuevo.');
+    }
+    if(!Array.isArray(ideas)||!ideas.length)throw new Error('Sin ideas generadas');
+    // Save to per-profile history + learn sources autonomously
+    if(!S.ideaHistoryByProfile[S.activeId])S.ideaHistoryByProfile[S.activeId]=[];
+    ideas.forEach(idea=>{if(idea.title)S.ideaHistoryByProfile[S.activeId].push(idea.title)});
+    learnSourceFromIdeas(ideas);
+    saveS();
+    S.ideas=ideas;renderIdeas();
+  }catch(e){
+    console.error(e);showErr('⚠ '+e.message);
+    document.getElementById('ilist').innerHTML=`<div class="empty"><div style="font-size:20px">⚠</div><div style="font-size:11px;color:var(--red)">${e.message}</div></div>`;
+  }
+  S.genIdeas=false;btn.classList.remove('loading');btn.disabled=false;
+}
+
+// ── RENDER IDEAS ──
+function renderIdeas(){
+  const el=document.getElementById('ilist');
+  if(!S.ideas.length){el.innerHTML=`<div class="empty"><div style="font-size:22px;opacity:.3">✦</div><div style="font-size:11px">Sin ideas aún</div></div>`;return}
+  el.innerHTML='';
+  S.ideas.forEach((idea,i)=>{
+    const src=idea.source?`<span style="font-size:9px;color:var(--t3);font-family:'DM Mono',monospace;display:block;margin-top:3px">📌 ${idea.source}</span>`:'';
+    const c=document.createElement('div');
+    c.className='icard'+(S.selIdea===i?' sel':'');
+    c.onclick=()=>{S.selIdea=i;renderIdeas()};
+    c.innerHTML=`<div class="icardtop"><span class="itheme-tag">${(idea.theme||idea.territory||'TEMA').toUpperCase()}</span><span class="iterr" style="font-size:9px;color:var(--t3)">${idea.territory||''}</span></div><div class="ititle">${idea.title||''}</div><div class="ihook">${idea.hook||''}</div>${src}<button class="igenbtn" onclick="event.stopPropagation();openPopup(${i})">Configurar →</button>`;
+    el.appendChild(c);
+  });
+}
+
+// ── POST OPTIONS POPUP ──
+function openPopup(idx){
+  S.pendingIdx=idx;S.popLen=null;S.popIntent=null;
+  document.querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('sel'));
+  document.querySelectorAll('.intent-btn').forEach(b=>b.classList.remove('sel'));
+  document.getElementById('popupConfirm').disabled=true;
+  // Build intent buttons from profile
+  const p=getProf();
+  const types=(p&&p.types&&p.types.length)?p.types:DEF_TYPES;
+  const grid=document.getElementById('intentGrid');grid.innerHTML='';
+  types.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='intent-btn';b.dataset.val=t;b.textContent=t;
+    b.onclick=function(){
+      document.querySelectorAll('.intent-btn').forEach(x=>x.classList.remove('sel'));
+      this.classList.add('sel');S.popIntent=t;
+      checkPopupReady();
+    };
+    grid.appendChild(b);
+  });
+  document.getElementById('popupOverlay').classList.add('open');
+}
+function closePopup(){document.getElementById('popupOverlay').classList.remove('open')}
+function selectOpt(btn){
+  const group=btn.dataset.group;
+  document.querySelectorAll(`.opt-btn[data-group="${group}"]`).forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  if(group==='len')S.popLen=btn.dataset.val;
+  checkPopupReady();
+}
+function checkPopupReady(){
+  document.getElementById('popupConfirm').disabled=!(S.popLen&&S.popIntent);
+}
+function confirmPopup(){closePopup();S.selIdea=S.pendingIdx;renderIdeas();generatePost()}
+
+// ── REGEN POPUP ──
+function openRegenPopup(){
+  document.getElementById('regenFeedback').value='';
+  document.getElementById('regenOverlay').classList.add('open');
+}
+function closeRegenPopup(){document.getElementById('regenOverlay').classList.remove('open')}
+async function confirmRegen(){
+  const feedback=document.getElementById('regenFeedback').value.trim();
+  if(feedback){
+    // Classify feedback: profile-specific vs global
+    const profileKeywords=['voz','tono','personalidad','nunca diría','demasiado formal','demasiado informal','no suena a','más personal','menos corporativo','estilo'];
+    const globalKeywords=['ia','inteligencia artificial','robótico','genérico','chatgpt','artificial','predecible','estructura','cliché','muy largo','muy corto'];
+    const fl=feedback.toLowerCase();
+    const isProfile=profileKeywords.some(k=>fl.includes(k));
+    const isGlobal=globalKeywords.some(k=>fl.includes(k));
+    if(isProfile){
+      S.profileFeedback.push({text:feedback,profileId:S.activeId,ts:Date.now()});
+    }
+    if(isGlobal||(!isProfile&&!isGlobal)){
+      S.globalFeedback.push({text:feedback,ts:Date.now()});
+    }
+    saveS();
+  }
+  closeRegenPopup();
+  saveFeedbackToDB();
+  // Save regen comment to post history
+  if(feedback&&S.activeId){
+    const hist=S.postHistoryByProfile[S.activeId]||[];
+    const entry=hist.find(h=>h.ideaIdx===S.selIdea&&h.intent===S.popIntent);
+    if(entry){
+      entry.regenComments=entry.regenComments||[];
+      entry.regenComments.push({comment:feedback,ts:Date.now()});
+    }
+    saveS();
+  }
+  generatePost(feedback);
+}
+
+// ── GENERATE POST ──
+function setStep(n){for(let i=1;i<=4;i++){const el=document.getElementById('gs'+i);el.className='gen-step'+(i<n?' done':i===n?' active':'')}}
+
+async function generatePost(regenFeedback){
+  if(S.selIdea===null||S.genPost)return;
+  const idea=S.ideas[S.selIdea];if(!idea)return;
+  S.genPost=true;hideErr();
+  document.getElementById('regenBtn').disabled=true;document.getElementById('cpyBtn').disabled=true;
+  const p=getProf();const sp=buildSP(p);
+  const pc=document.getElementById('postcnt');
+  pc.innerHTML='<span class="cur"></span>';pc.classList.remove('has');
+  document.getElementById('rpfmt').textContent=`${idea.theme||''} · ${S.popLen||'mediano'} · ${S.popIntent||''}`;
+  document.getElementById('rpfmt').style.color='var(--cyan)';
+  document.getElementById('stats').style.display='none';
+  document.getElementById('imgsugg').classList.remove('vis');
+  const gs=document.getElementById('genStatus');gs.classList.add('vis');setStep(1);
+
+  const lenMap={corto:'150-250 palabras',mediano:'300-450 palabras',largo:'500-700 palabras'};
+  const lenInstr=lenMap[S.popLen||'mediano'];
+  const intent=S.popIntent||'';
+  const postSrcs=p&&p.srcs&&p.srcs.length?p.srcs.filter(s=>s.name).map(s=>s.name).join(', '):'';
+    const regenCtx=regenFeedback||''
+
+  // STEP 1: Draft
+  const draftPr=`Escribe un borrador de post para LinkedIn en la voz de ${p?p.name+', '+p.role:'este perfil'}.
+
+Idea: ${idea.title}
+Temática: ${idea.theme||idea.territory||''}
+Tópico: ${idea.territory||''}
+Gancho base: ${idea.hook}
+Ángulo: ${idea.angle}
+Intención del post: ${intent}
+Longitud objetivo: ${lenInstr}
+${postSrcs?'Bases de conocimiento del perfil: '+postSrcs:''}${regenCtx?'\nFeedback del usuario para mejorar: '+regenCtx:''}
+
+Instrucciones:
+- Empieza DIRECTAMENTE con el gancho, sin título ni saludo
+- Primera persona auténtica
+- ${lenInstr}
+- Cierra con afirmación contundente, nunca con pregunta
+
+Devuelve SOLO el texto del borrador, sin explicaciones.`;
+
+  let draft='';
+  try{
+    draft=await apiCall({max_tokens:1200,system:sp,messages:[{role:'user',content:draftPr}]},false);
+    if(!draft)throw new Error('Sin borrador del modelo');
+  }catch(e){
+    gs.classList.remove('vis');showErr('⚠ '+e.message);
+    pc.classList.remove('has');pc.innerHTML=`<div class="postph"><div style="font-size:18px;opacity:.3">⚠</div><div style="font-size:10px;color:var(--red)">${e.message}</div></div>`;
+    document.getElementById('regenBtn').disabled=false;S.genPost=false;return;
+  }
+
+  setStep(2);
+
+  // STEP 2-4: Comité editorial
+  // Build feedback memory for director creativo
+  const profFB=S.profileFeedback.filter(f=>!f.profileId||f.profileId===S.activeId).slice(-10).map(f=>f.text);
+  const globFB=S.globalFeedback.slice(-10).map(f=>f.text);
+  const feedbackMemory=(profFB.length||globFB.length)?`
+MEMORIA DE FEEDBACK ACUMULADO (el Director Creativo DEBE considerar estas correcciones antes de presentar el post final):
+${profFB.length?'· Correcciones de voz/personalidad del perfil:\n  - '+profFB.join('\n  - '):''}
+${globFB.length?'· Correcciones generales de calidad:\n  - '+globFB.join('\n  - '):''}
+Estas correcciones son aprendizajes de generaciones anteriores. Si el post final las ignora, el Director Creativo debe vetarlo.`:'';
+
+  // Build pattern memory warning for committee
+  const patterns=S.postPatternsByProfile[S.activeId]||[];
+  const recentPatterns=patterns.slice(-8);
+  const patternWarning=recentPatterns.length?`
+PATRONES YA USADOS RECIENTEMENTE (el Director Creativo debe VETARLOS si aparecen en el borrador):
+${recentPatterns.map(p=>`- Apertura similar a: "${p.opener}" (tipo: ${p.archetype})`).join('\n')}
+PROHIBIDO reusar estos arquetipos de apertura: ${[...new Set(recentPatterns.map(p=>p.archetype))].join(', ')}.
+Si el borrador empieza con historia de cliente/CFO/equipo y ya hay 2 o más historias recientes, CAMBIA el arquetipo.`:'';
+
+    // Compact context
+  const profCtx=p?`${p.name}, ${p.role}. Voz: ${(p.tone||'directo').substring(0,80)}. JAMAS: ${(p.never||'motivacion vacia').substring(0,80)}.`:'Perfil generico.';
+  const patCtx=recentPatterns.length?`APERTURAS YA USADAS (no repetir): ${[...new Set(recentPatterns.map(x=>x.archetype))].join(', ')}.`:'';
+  const fbCtx=(profFB.length||globFB.length)?`FEEDBACK PREVIO: ${[...profFB,...globFB].slice(-5).join(' | ')}.`:'';
+
+  const committeePr=`Comite editorial: reescribe este borrador para que suene humano y autentico de ${p?p.name:'este perfil'}.
+
+PERFIL: ${profCtx}
+${patCtx}
+${fbCtx}
+INTENCION: ${intent} | LONGITUD: ${lenInstr}${regenCtx?'\nCAMBIAR: '+regenCtx:''}
+
+BORRADOR:
+${draft}
+
+Mejoras del comite:
+- Quita tono corporativo y palabras que suenan a IA
+- Refuerza el gancho de apertura, que obligue a seguir leyendo
+- Ritmo: oraciones cortas, variadas
+- Cierra con afirmacion contundente, nunca pregunta
+- Mantiene VOZ y restricciones del perfil
+
+Escribe SOLO el post final mejorado despues del marcador:
+===POST_FINAL===`;
+
+  setStep(3);
+  let finalPost='';
+  try{
+    const full=await apiCall({max_tokens:1500,messages:[{role:'user',content:committeePr}]},false);
+    setStep(4);
+    const marker='===POST_FINAL===';
+    const idx=full.indexOf(marker);
+    finalPost=idx>=0?full.substring(idx+marker.length).trim():draft;
+  }catch(e){
+    console.warn('Committee failed, using draft');finalPost=draft;
+  }
+
+  S.post=finalPost.trim();
+
+  // Save to post history
+  if(S.activeId&&S.post){
+    const idea=S.ideas[S.selIdea]||{};
+    if(!S.postHistoryByProfile[S.activeId])S.postHistoryByProfile[S.activeId]=[];
+    const existingIdx=S.postHistoryByProfile[S.activeId].findIndex(h=>h.ideaIdx===S.selIdea&&h.intent===S.popIntent);
+    if(existingIdx>=0){
+      // Update existing entry — keep regen comments
+      S.postHistoryByProfile[S.activeId][existingIdx].post=S.post;
+      S.postHistoryByProfile[S.activeId][existingIdx].updatedTs=Date.now();
+    } else {
+      S.postHistoryByProfile[S.activeId].unshift({
+        id:Date.now().toString(),
+        ideaIdx:S.selIdea,
+        title:idea.title||'Post sin título',
+        theme:idea.theme||'',
+        intent:S.popIntent||'',
+        len:S.popLen||'mediano',
+        post:S.post,
+        regenComments:[],
+        ts:Date.now(),
+        updatedTs:Date.now(),
+      });
+      // Keep last 50 posts per profile
+      S.postHistoryByProfile[S.activeId]=S.postHistoryByProfile[S.activeId].slice(0,50);
+    }
+  }
+
+  // Extract writing pattern to avoid repetition in future posts
+  if(S.activeId&&S.post){
+    if(!S.postPatternsByProfile[S.activeId])S.postPatternsByProfile[S.activeId]=[];
+    const lines=S.post.split('\n').filter(l=>l.trim().length>0);
+    const opener=lines[0]?lines[0].substring(0,60):'';
+    // Detect archetype: question, stat, story, statement
+    const archetype=opener.match(/^[¿?]/)?'pregunta':
+      opener.match(/\d+[%$]|\d+ de cada/)?'estadistica':
+      opener.match(/hace (días|semanas|meses|años)|la semana|ayer|un cliente|un equipo|un ceo|un cfo/i)?'historia':
+      'afirmacion';
+    S.postPatternsByProfile[S.activeId].push({opener:opener,archetype,ts:Date.now()});
+    // Keep last 20 patterns per profile
+    S.postPatternsByProfile[S.activeId]=S.postPatternsByProfile[S.activeId].slice(-20);
+    saveS();
+  }
+
+  gs.classList.remove('vis');
+  pc.innerHTML='';pc.classList.add('has');
+  await typewrite(pc,S.post);
+
+  const w=S.post.split(/\s+/).filter(Boolean).length;
+  document.getElementById('sw').textContent=w;
+  document.getElementById('sc').textContent=S.post.length;
+  document.getElementById('sr').textContent=Math.max(1,Math.round(w/200))+'m';
+  document.getElementById('stats').style.display='flex';
+  if(idea.image){document.getElementById('isuggtext').textContent=idea.image;document.getElementById('imgsugg').classList.add('vis')}
+  document.getElementById('cpyBtn').disabled=false;document.getElementById('regenBtn').disabled=false;
+  // Show LinkedIn publish button if connected
+  checkLinkedInStatus()
+  S.genPost=false;
+}
+
+async function typewrite(el,txt){
+  el.innerHTML='';const cur=document.createElement('span');cur.className='cur';el.appendChild(cur);
+  let i=0;
+  return new Promise(r=>{
+    function step(){
+      if(i>=txt.length){cur.remove();el.textContent=txt;r();return}
+      i=Math.min(i+4,txt.length);el.textContent=txt.substring(0,i);el.appendChild(cur);el.scrollTop=el.scrollHeight;setTimeout(step,10);
+    }
+    step();
+  });
+}
+
+function copyPost(){
+  if(!S.post)return;
+  navigator.clipboard.writeText(S.post).then(()=>{
+    const b=document.getElementById('cpyBtn'),o=b.textContent;b.textContent='✓ Copiado';setTimeout(()=>b.textContent=o,2000);
+  }).catch(()=>{const t=document.createElement('textarea');t.value=S.post;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove()});
+}
+
+function resetPost(){
+  const pc=document.getElementById('postcnt');pc.classList.remove('has');
+  pc.innerHTML=`<div class="postph"><div style="font-size:20px;opacity:.2">✦</div><div style="font-size:10px;color:var(--t3)">Selecciona una idea<br>y presiona "Configurar →"</div></div>`;
+  document.getElementById('stats').style.display='none';document.getElementById('imgsugg').classList.remove('vis');
+  document.getElementById('genStatus').classList.remove('vis');
+  document.getElementById('rpfmt').textContent='—';document.getElementById('rpfmt').style.color='var(--t3)';
+  document.getElementById('cpyBtn').disabled=true;document.getElementById('regenBtn').disabled=true;
+  S.post='';
+}
+
+
+// ── CALENDAR / SCHEDULE ──
+const SCHEDULE_RUNNER_URL = 'https://iplfugophylxvsfupack.supabase.co/functions/v1/schedule-runner'
+let calCurrentTab = 1
+
+// Calendar state
+let calViewYear = new Date().getFullYear()
+let calViewMonth = new Date().getMonth()
+let calSelectedDates = [] // stores day numbers (1-31) or full dates (YYYY-MM-DD)
+let calRepeatMode = 'weekly'
+
+function openCalModal(){
+  const p = getProf()
+  if(!p){ alert('Selecciona un perfil primero'); return }
+  calSelectedDates = []
+  calRepeatMode = 'weekly'
+  calViewYear = new Date().getFullYear()
+  calViewMonth = new Date().getMonth()
+  document.getElementById('calModal').classList.add('open')
+  switchCalTab(1)
+}
+function closeCalModal(){ document.getElementById('calModal').classList.remove('open') }
+
+function switchCalTab(n){
+  calCurrentTab = n
+  for(let i=1;i<=3;i++){
+    document.getElementById('calTab'+i).classList.toggle('active', i===n)
+    document.getElementById('calBody'+i).style.display = i===n ? 'block' : 'none'
+  }
+  if(n===1) loadSchedules()
+  if(n===2) loadQueue()
+  if(n===3){ setTimeout(renderCalendar, 50) }
+}
+
+function setRepeat(mode){
+  calRepeatMode = mode
+  document.querySelectorAll('[data-repeat]').forEach(b=>b.classList.toggle('sel', b.dataset.repeat===mode))
+  const hints = {
+    weekly:'Semanal: los días que marques se repetirán cada semana indefinidamente.',
+    monthly:'Mensual: las fechas que marques se repetirán cada mes (ej: día 5, 15).',
+    once:'Sin repetición: el sistema publicará solo en las fechas exactas que selecciones.'
+  }
+  document.getElementById('repeatHint').textContent = hints[mode]
+  // Clear selections when changing mode
+  calSelectedDates = []
+  renderCalendar()
+}
+
+function calPrevMonth(){
+  calViewMonth--
+  if(calViewMonth < 0){ calViewMonth=11; calViewYear-- }
+  renderCalendar()
+}
+function calNextMonth(){
+  calViewMonth++
+  if(calViewMonth > 11){ calViewMonth=0; calViewYear++ }
+  renderCalendar()
+}
+
+function renderCalendar(){
+  const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+  document.getElementById('calMonthLabel').textContent = months[calViewMonth] + ' ' + calViewYear
+
+  const grid = document.getElementById('calDaysGrid')
+  if(!grid) return
+  grid.innerHTML = ''
+
+  const today = new Date()
+  const firstDay = new Date(calViewYear, calViewMonth, 1)
+  // Monday-first: 0=Mon, 6=Sun
+  let startDow = firstDay.getDay() - 1
+  if(startDow < 0) startDow = 6
+
+  const daysInMonth = new Date(calViewYear, calViewMonth+1, 0).getDate()
+
+  // Empty cells before first day
+  for(let i=0;i<startDow;i++){
+    const empty = document.createElement('div')
+    empty.style.cssText='height:28px'
+    grid.appendChild(empty)
+  }
+
+  for(let d=1;d<=daysInMonth;d++){
+    const thisDate = new Date(calViewYear, calViewMonth, d)
+    const isToday = today.toDateString()===thisDate.toDateString()
+    const isPast = thisDate < today && !isToday
+
+    // Determine if selected
+    let isSelected = false
+    if(calRepeatMode==='weekly'){
+      // Check day of week (1=Mon...7=Sun)
+      const dow = thisDate.getDay()===0?7:thisDate.getDay()
+      isSelected = calSelectedDates.includes(dow)
+    } else {
+      const dateStr = `${calViewYear}-${String(calViewMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+      if(calRepeatMode==='monthly'){
+        isSelected = calSelectedDates.includes(d)
+      } else {
+        isSelected = calSelectedDates.includes(dateStr)
+      }
+    }
+
+    const cell = document.createElement('div')
+    cell.textContent = d
+    cell.style.cssText = `height:28px;display:flex;align-items:center;justify-content:center;border-radius:5px;font-size:11px;cursor:${isPast?'default':'pointer'};font-family:'DM Mono',monospace;transition:all .15s;`
+    if(isToday) cell.style.cssText += `border:1px solid var(--cyan);color:var(--cyan);font-weight:700;`
+    else if(isPast) cell.style.cssText += `color:var(--t3);opacity:.4;`
+    else cell.style.cssText += `color:var(--t2);`
+    if(isSelected) cell.style.cssText += `background:var(--cyan);color:#000;font-weight:700;`
+
+    if(!isPast){
+      cell.addEventListener('click',()=>{
+        if(calRepeatMode==='weekly'){
+          const dow = thisDate.getDay()===0?7:thisDate.getDay()
+          if(calSelectedDates.includes(dow)) calSelectedDates=calSelectedDates.filter(x=>x!==dow)
+          else calSelectedDates.push(dow)
+        } else if(calRepeatMode==='monthly'){
+          if(calSelectedDates.includes(d)) calSelectedDates=calSelectedDates.filter(x=>x!==d)
+          else calSelectedDates.push(d)
+        } else {
+          const dateStr=`${calViewYear}-${String(calViewMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+          if(calSelectedDates.includes(dateStr)) calSelectedDates=calSelectedDates.filter(x=>x!==dateStr)
+          else calSelectedDates.push(dateStr)
+        }
+        renderCalendar()
+        const cnt = document.getElementById('calSelectedCount')
+        if(cnt) cnt.textContent = calSelectedDates.length ? `— ${calSelectedDates.length} día${calSelectedDates.length>1?'s':''} seleccionado${calSelectedDates.length>1?'s':''}` : '— ningún día seleccionado'
+      })
+    }
+    grid.appendChild(cell)
+  }
+}
+
+async function saveSchedule(){
+  const p = getProf()
+  if(!p){ alert('Selecciona un perfil'); return }
+
+  const name = document.getElementById('calName').value.trim()
+  if(!name){ alert('Escribe un nombre para el calendario'); return }
+  if(!calSelectedDates.length){ alert('Selecciona al menos un día en el calendario'); return }
+
+  const publishTime = document.getElementById('calTime').value || '09:00'
+  const reviewHours = parseInt(document.getElementById('calReview').value) || 24
+  const [h,m] = publishTime.split(':').map(Number)
+
+  // Map repeat mode to frequency field
+  const freqMap = { weekly:'weekly', monthly:'monthly', once:'specific_dates' }
+  const freq = freqMap[calRepeatMode] || 'weekly'
+
+  // Calculate next_run_at based on selections
+  const now = new Date()
+  let nextRun = null
+
+  if(calRepeatMode === 'weekly'){
+    // Find next occurrence of selected weekdays
+    const next = new Date(now)
+    next.setHours(h, m, 0, 0)
+    for(let i=0;i<8;i++){
+      const dow = next.getDay()===0?7:next.getDay()
+      if(calSelectedDates.includes(dow) && next > now){ nextRun=new Date(next); break }
+      next.setDate(next.getDate()+1)
+    }
+  } else if(calRepeatMode === 'monthly'){
+    // Find next occurrence of selected day-of-month
+    const next = new Date(now.getFullYear(), now.getMonth(), 1, h, m, 0)
+    for(let i=0;i<60;i++){
+      if(calSelectedDates.includes(next.getDate()) && next > now){ nextRun=new Date(next); break }
+      next.setDate(next.getDate()+1)
+    }
+  } else {
+    // Specific dates — pick the next upcoming one
+    const upcoming = calSelectedDates.map(d=>new Date(d+'T'+publishTime+':00')).filter(d=>d>now).sort((a,b)=>a-b)
+    if(upcoming.length) nextRun = upcoming[0]
+  }
+
+  if(!nextRun){ alert('Las fechas seleccionadas ya pasaron. Selecciona fechas futuras.'); return }
+
+  const btn = document.querySelector('.cal-save-btn')
+  btn.textContent = 'Guardando…'
+  btn.disabled = true
+
+  try{
+    const { error } = await sb.from('publishing_schedules').insert({
+      profile_id: p.id,
+      name,
+      frequency: freq,
+      weekdays: calRepeatMode==='weekly' ? calSelectedDates : [1,2,3,4,5],
+      specific_dates: calRepeatMode!=='weekly' ? calSelectedDates.map(d=>String(d)) : null,
+      publish_time: publishTime,
+      review_window_hours: reviewHours,
+      post_length: 'auto', // varied automatically
+      post_intent: 'auto', // varied automatically
+      active: true,
+      next_run_at: nextRun.toISOString(),
+    })
+    if(error) throw error
+
+    document.getElementById('calName').value = ''
+    calSelectedDates = []
+    btn.textContent = '✓ Calendario guardado'
+    setTimeout(()=>{ btn.textContent = 'Guardar calendario →'; btn.disabled = false }, 2000)
+    switchCalTab(1)
+  }catch(e){
+    alert('Error al guardar: ' + e.message)
+    btn.textContent = 'Guardar calendario →'
+    btn.disabled = false
+  }
+}
+
+async function loadSchedules(){
+  const p = getProf()
+  const el = document.getElementById('schedulesList')
+  if(!p){ el.innerHTML = '<div class="empty-queue">Selecciona un perfil</div>'; return }
+
+  el.innerHTML = '<div class="empty-queue">Cargando…</div>'
+  const { data } = await sb.from('publishing_schedules').select('*').eq('profile_id', p.id).order('created_at')
+
+  if(!data || !data.length){
+    el.innerHTML = '<div class="empty-queue">Sin calendarios. Crea uno en "+ Nuevo calendario"</div>'
+    return
+  }
+
+  const freqLabel = { daily_weekdays:'Diario entre semana', weekly:'Semanal', biweekly:'Quincenal', monthly:'Mensual', specific_dates:'Fechas específicas' }
+  el.innerHTML = data.map(s=>`
+    <div class="schedule-card">
+      <div class="schedule-card-info">
+        <div class="schedule-name">${s.name}</div>
+        <div class="schedule-meta">${freqLabel[s.frequency]||s.frequency} · ${s.publish_time} · ${s.review_window_hours}h revisión · ${s.review_window_hours>0?s.review_window_hours+'h revisión':'Sin revisión'} · Extensión e intención automáticas</div>
+        <div class="schedule-meta" style="color:var(--cyan)">Próxima: ${s.next_run_at ? new Date(s.next_run_at).toLocaleString('es',{dateStyle:'short',timeStyle:'short'}) : '—'}</div>
+      </div>
+      <div class="schedule-toggle">
+        <span style="font-size:10px;color:${s.active?'var(--green)':'var(--t3)'}">${s.active?'Activo':'Pausado'}</span>
+        <button class="sch-del-btn" onclick="toggleSchedule('${s.id}',${s.active})">${s.active?'Pausar':'Activar'}</button>
+        <button class="sch-del-btn" onclick="deleteSchedule('${s.id}')">Eliminar</button>
+      </div>
+    </div>`).join('')
+}
+
+async function toggleSchedule(id, current){
+  await sb.from('publishing_schedules').update({ active: !current }).eq('id', id)
+  loadSchedules()
+}
+
+async function deleteSchedule(id){
+  if(!confirm('¿Eliminar este calendario?')) return
+  await sb.from('publishing_schedules').delete().eq('id', id)
+  loadSchedules()
+}
+
+async function loadQueue(){
+  const p = getProf()
+  const el = document.getElementById('queueList')
+  if(!p){ el.innerHTML = '<div class="empty-queue">Selecciona un perfil</div>'; return }
+
+  el.innerHTML = '<div class="empty-queue">Cargando…</div>'
+  const { data } = await sb.from('scheduled_posts')
+    .select('*').eq('profile_id', p.id)
+    .order('generated_at', { ascending: false }).limit(20)
+
+  if(!data || !data.length){
+    el.innerHTML = '<div class="empty-queue">Sin posts en la cola.<br><span style="font-size:10px">Los posts generados automáticamente aparecerán aquí.</span></div>'
+    return
+  }
+
+  el.innerHTML = data.map(post=>{
+    const deadline = post.review_deadline ? new Date(post.review_deadline).toLocaleString('es',{dateStyle:'short',timeStyle:'short'}) : ''
+    const isPending = post.status === 'pending_review'
+    const statusLabel = {pending_review:'Pendiente',published:'Publicado',rejected:'Rechazado',auto_published:'Auto-publicado'}[post.status] || post.status
+    const statusClass = {pending_review:'pending',published:'published',rejected:'rejected',auto_published:'published'}[post.status] || ''
+    return `<div class="queue-card">
+      <div class="queue-card-top">
+        <div>
+          <div class="queue-card-title">${post.idea_title||'Post generado'}</div>
+          <div class="queue-card-meta">${post.theme||''} · ${new Date(post.generated_at).toLocaleString('es',{dateStyle:'short',timeStyle:'short'})}</div>
+          ${isPending&&deadline?`<div class="queue-deadline">⏰ Límite: ${deadline}</div>`:''}
+        </div>
+        <span class="q-status ${statusClass}">${statusLabel}</span>
+      </div>
+      <div class="queue-post-preview">${post.content||''}</div>
+      ${isPending?`<div class="queue-actions">
+        <button class="q-approve" onclick="approveQueuePost('${post.id}')">✅ Aprobar y publicar</button>
+        <button class="q-reject" onclick="rejectQueuePost('${post.id}')">❌ Rechazar</button>
+      </div>`:''}
+    </div>`
+  }).join('')
+}
+
+async function approveQueuePost(id){
+  const btn = event.target
+  btn.textContent = 'Publicando…'
+  btn.disabled = true
+  try{
+    const res = await fetch(`${SCHEDULE_RUNNER_URL}?action=approve&id=${id}`)
+    if(res.ok || res.redirected){
+      setTimeout(loadQueue, 1000)
+    }
+  }catch(e){ alert('Error: ' + e.message) }
+}
+
+async function rejectQueuePost(id){
+  const reason = prompt('Motivo del rechazo (opcional):') || 'Rechazado manualmente'
+  await sb.from('scheduled_posts').update({ status: 'rejected', rejection_reason: reason }).eq('id', id)
+  loadQueue()
+}
+
+// ── LINKEDIN INTEGRATION ──
+const SB_OAUTH_URL = 'https://iplfugophylxvsfupack.supabase.co/functions/v1/smooth-function'
+const SB_PUBLISH_URL = 'https://iplfugophylxvsfupack.supabase.co/functions/v1/bright-handler'
+
+// Check if LinkedIn is connected for active profile
+async function checkLinkedInStatus(){
+  const p = getProf()
+  const btn = document.getElementById('liConnectBtn')
+  const pubBtn = document.getElementById('liPublishBtn')
+  if(!p || !btn) return
+
+  btn.style.display = 'flex'
+
+  try{
+    const {data} = await sb.from('linkedin_tokens').select('linkedin_name,expires_at').eq('profile_id', p.id).single()
+    if(data && new Date(data.expires_at) > new Date()){
+      btn.textContent = '✓ LinkedIn: ' + data.linkedin_name
+      btn.classList.add('connected')
+      btn.onclick = () => { if(confirm('¿Desconectar LinkedIn de este perfil?')) disconnectLinkedIn() }
+      if(pubBtn && S.post){ pubBtn.style.display='block'; pubBtn.disabled=false }
+    } else {
+      btn.textContent = '🔗 Conectar LinkedIn'
+      btn.classList.remove('connected')
+      btn.onclick = connectLinkedIn
+      if(pubBtn) pubBtn.style.display = 'none'
+    }
+  }catch(e){
+    btn.textContent = '🔗 Conectar LinkedIn'
+    btn.classList.remove('connected')
+    if(pubBtn) pubBtn.style.display = 'none'
+  }
+}
+
+function connectLinkedIn(){
+  const p = getProf()
+  if(!p){ alert('Selecciona un perfil primero'); return }
+  // Open OAuth flow in same window
+  window.location.href = `${SB_OAUTH_URL}?profile_id=${p.id}`
+}
+
+async function disconnectLinkedIn(){
+  const p = getProf()
+  if(!p) return
+  await sb.from('linkedin_tokens').delete().eq('profile_id', p.id)
+  checkLinkedInStatus()
+}
+
+async function publishToLinkedIn(){
+  if(!S.post){ alert('No hay post generado'); return }
+  const p = getProf()
+  if(!p){ alert('Selecciona un perfil'); return }
+
+  const btn = document.getElementById('liPublishBtn')
+  const status = document.getElementById('liStatus')
+  btn.disabled = true
+  btn.textContent = 'Publicando…'
+  status.textContent = ''
+  status.style.color = 'var(--t3)'
+
+  try{
+    const res = await fetch(SB_PUBLISH_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({profile_id: p.id, content: S.post})
+    })
+    const data = await res.json()
+
+    if(data.success){
+      btn.textContent = '✓ Publicado en LinkedIn'
+      btn.style.background = 'var(--green)'
+      btn.style.color = '#000'
+      status.textContent = '✓ Publicado correctamente — ' + new Date().toLocaleTimeString('es')
+      status.style.color = 'var(--green)'
+      setTimeout(()=>{
+        btn.textContent = 'Publicar en LinkedIn →'
+        btn.style.background = '#0A66C2'
+        btn.style.color = '#fff'
+        btn.disabled = false
+      }, 4000)
+    } else {
+      throw new Error(data.error || 'Error al publicar')
+    }
+  }catch(e){
+    btn.textContent = 'Publicar en LinkedIn →'
+    btn.disabled = false
+    status.textContent = '⚠ ' + e.message
+    status.style.color = 'var(--red)'
+  }
+}
+
+// Check for LinkedIn callback on page load
+function checkLinkedInCallback(){
+  const params = new URLSearchParams(window.location.search)
+  if(params.get('linkedin_connected')){
+    const profileId = params.get('profile_id')
+    // Clean URL
+    window.history.replaceState({}, '', window.location.pathname)
+    showErr('')
+    // Show success
+    const banner = document.getElementById('errBanner')
+    banner.textContent = '✓ LinkedIn conectado correctamente'
+    banner.style.color = 'var(--green)'
+    banner.style.background = 'rgba(111,222,156,.1)'
+    banner.style.borderColor = 'rgba(111,222,156,.2)'
+    banner.classList.add('vis')
+    setTimeout(()=>{
+      banner.classList.remove('vis')
+      banner.style.color = 'var(--red)'
+      banner.style.background = 'rgba(255,82,82,.1)'
+      banner.style.borderColor = 'rgba(255,82,82,.2)'
+    }, 4000)
+    checkLinkedInStatus()
+  }
+  if(params.get('linkedin_error')){
+    window.history.replaceState({}, '', window.location.pathname)
+    showErr('⚠ Error conectando LinkedIn: ' + params.get('linkedin_error'))
+  }
+}
+
+init();
+// Check LinkedIn callback after page loads
+setTimeout(checkLinkedInCallback, 500)
+</script>
+</body>
+</html>
