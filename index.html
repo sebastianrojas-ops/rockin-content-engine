@@ -636,6 +636,19 @@ body{background:var(--black);color:var(--t1);font-family:'DM Sans',sans-serif;fo
           </div>
         </div>
 
+        <!-- Email responsable -->
+        <div class="cal-form-grid" style="margin-bottom:12px">
+          <div class="cal-fld">
+            <label class="cal-label">Email del responsable de aprobar</label>
+            <input class="cal-input" id="calNotifyEmail" type="email" placeholder="community@rockin.com" />
+            <span style="font-size:9px;color:var(--t3)">Recibirá el email con el post para aprobar o rechazar</span>
+          </div>
+          <div class="cal-fld">
+            <label class="cal-label">Email adicional (opcional)</label>
+            <input class="cal-input" id="calNotifyEmail2" type="email" placeholder="luis@rockin.com" />
+          </div>
+        </div>
+
         <!-- Repeat pattern -->
         <div class="cal-fld" style="margin-bottom:12px">
           <label class="cal-label">¿Cómo se repite este calendario?</label>
@@ -2012,39 +2025,49 @@ async function saveSchedule(){
   const freqMap = { weekly:'weekly', monthly:'monthly', once:'specific_dates' }
   const freq = freqMap[calRepeatMode] || 'weekly'
 
-  // Calculate next_run_at based on selections
+  // Gap: how early to generate before publish date
+  const gapMap = { weekly:7, monthly:14, once:3 }
+  const gapDays = gapMap[calRepeatMode] || 7
+
+  // Calculate next PUBLISH date
   const now = new Date()
-  let nextRun = null
+  let publishDate = null
 
   if(calRepeatMode === 'weekly'){
-    // Find next occurrence of selected weekdays
     const next = new Date(now)
     next.setHours(h, m, 0, 0)
-    for(let i=0;i<8;i++){
+    for(let i=0;i<15;i++){
       const dow = next.getDay()===0?7:next.getDay()
-      if(calSelectedDates.includes(dow) && next > now){ nextRun=new Date(next); break }
+      if(calSelectedDates.includes(dow) && next > now){ publishDate=new Date(next); break }
       next.setDate(next.getDate()+1)
     }
   } else if(calRepeatMode === 'monthly'){
-    // Find next occurrence of selected day-of-month
     const next = new Date(now.getFullYear(), now.getMonth(), 1, h, m, 0)
     for(let i=0;i<60;i++){
-      if(calSelectedDates.includes(next.getDate()) && next > now){ nextRun=new Date(next); break }
+      if(calSelectedDates.includes(next.getDate()) && next > now){ publishDate=new Date(next); break }
       next.setDate(next.getDate()+1)
     }
   } else {
-    // Specific dates — pick the next upcoming one
     const upcoming = calSelectedDates.map(d=>new Date(d+'T'+publishTime+':00')).filter(d=>d>now).sort((a,b)=>a-b)
-    if(upcoming.length) nextRun = upcoming[0]
+    if(upcoming.length) publishDate = upcoming[0]
   }
 
-  if(!nextRun){ alert('Las fechas seleccionadas ya pasaron. Selecciona fechas futuras.'); return }
+  if(!publishDate){ alert('Las fechas seleccionadas ya pasaron. Selecciona fechas futuras.'); return }
+
+  // next_run_at = publish date - gap (when to GENERATE)
+  const nextRun = new Date(publishDate.getTime() - gapDays * 24 * 60 * 60 * 1000)
+  // If generation date already passed, start now
+  const effectiveNextRun = nextRun < now ? new Date(now.getTime() + 60000) : nextRun
 
   const btn = document.querySelector('.cal-save-btn')
   btn.textContent = 'Guardando…'
   btn.disabled = true
 
   try{
+    const notifyEmail = document.getElementById('calNotifyEmail').value.trim() || 'community@rockin.com'
+    const notifyEmail2 = document.getElementById('calNotifyEmail2').value.trim()
+    const notifyEmails = [notifyEmail, ...(notifyEmail2 ? [notifyEmail2] : [])].join(',')
+
     const { error } = await sb.from('publishing_schedules').insert({
       profile_id: p.id,
       name,
@@ -2053,10 +2076,12 @@ async function saveSchedule(){
       specific_dates: calRepeatMode!=='weekly' ? calSelectedDates.map(d=>String(d)) : null,
       publish_time: publishTime,
       review_window_hours: reviewHours,
-      post_length: 'auto', // varied automatically
-      post_intent: 'auto', // varied automatically
+      post_length: 'auto',
+      post_intent: 'auto',
+      notify_email: notifyEmails,
       active: true,
-      next_run_at: nextRun.toISOString(),
+      next_run_at: effectiveNextRun.toISOString(),
+      gap_days: gapDays,
     })
     if(error) throw error
 
@@ -2091,7 +2116,9 @@ async function loadSchedules(){
       <div class="schedule-card-info">
         <div class="schedule-name">${s.name}</div>
         <div class="schedule-meta">${freqLabel[s.frequency]||s.frequency} · ${s.publish_time} · ${s.review_window_hours}h revisión · ${s.review_window_hours>0?s.review_window_hours+'h revisión':'Sin revisión'} · Extensión e intención automáticas</div>
-        <div class="schedule-meta" style="color:var(--cyan)">Próxima: ${s.next_run_at ? new Date(s.next_run_at).toLocaleString('es',{dateStyle:'short',timeStyle:'short'}) : '—'}</div>
+        <div class="schedule-meta" style="color:var(--t2)">📧 ${s.notify_email||'community@rockin.com'}</div>
+        <div class="schedule-meta" style="color:var(--cyan)">⚡ Genera: ${s.next_run_at ? new Date(s.next_run_at).toLocaleString('es',{dateStyle:'short',timeStyle:'short'}) : '—'}</div>
+        <div class="schedule-meta" style="color:var(--green)">📤 Publica: ${s.next_run_at && s.gap_days ? new Date(new Date(s.next_run_at).getTime() + (s.gap_days||7)*24*60*60*1000).toLocaleString('es',{dateStyle:'short',timeStyle:'short'}) : '—'}</div>
       </div>
       <div class="schedule-toggle">
         <span style="font-size:10px;color:${s.active?'var(--green)':'var(--t3)'}">${s.active?'Activo':'Pausado'}</span>
@@ -2099,6 +2126,31 @@ async function loadSchedules(){
         <button class="sch-del-btn" onclick="deleteSchedule('${s.id}')">Eliminar</button>
       </div>
     </div>`).join('')
+}
+
+async function testScheduleNow(scheduleId){
+  const btn = event.target
+  btn.textContent = 'Generando...'
+  btn.disabled = true
+  try{
+    // Force next_run_at to now so the cron picks it up
+    await sb.from('publishing_schedules').update({
+      next_run_at: new Date().toISOString()
+    }).eq('id', scheduleId)
+
+    // Call schedule-runner directly
+    const res = await fetch(SCHEDULE_RUNNER_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({action:'run'})
+    })
+    const data = await res.json()
+    btn.textContent = '✓ Generado'
+    setTimeout(()=>{ btn.textContent = '▶ Probar ahora'; btn.disabled = false; switchCalTab(2) }, 1500)
+  }catch(e){
+    btn.textContent = 'Error'
+    setTimeout(()=>{ btn.textContent = '▶ Probar ahora'; btn.disabled = false }, 2000)
+  }
 }
 
 async function toggleSchedule(id, current){
