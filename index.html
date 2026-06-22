@@ -724,7 +724,7 @@ body{background:var(--black);color:var(--t1);font-family:'DM Sans',sans-serif;fo
 <script>
 const MODEL='claude-sonnet-4-5';
 const DEFAULT_KEY='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';
-let API_KEY=localStorage.getItem('rockin_api_key')||DEFAULT_KEY;
+let API_KEY=DEFAULT_KEY;localStorage.removeItem('rockin_api_key');
 
 // ── SUPABASE ──
 const SB_URL='https://iplfugophylxvsfupack.supabase.co';
@@ -887,7 +887,7 @@ function loadS(){
 
 function onAK(v){
   const c=v.trim();API_KEY=c||DEFAULT_KEY;
-  if(c)localStorage.setItem('rockin_api_key',c);
+  if(c&&c!==DEFAULT_KEY)localStorage.setItem('rockin_api_key',c);else localStorage.removeItem('rockin_api_key');
   const ok=document.getElementById('akOk');ok.textContent='✓';ok.style.color='var(--green)';
 }
 
@@ -984,8 +984,7 @@ function extractJSON(raw,type){
 // ── INIT ──
 function init(){
   loadS();
-  const savedKey=localStorage.getItem('rockin_api_key');
-  if(savedKey){document.getElementById('akInput').value=savedKey;}
+  localStorage.removeItem('rockin_api_key');
   const ok=document.getElementById('akOk');ok.textContent='✓';ok.style.color='var(--green)';
   renderCDots();renderCTypes();renderPSrcs();
 
